@@ -280,8 +280,8 @@ string tokenTypeToString(TokenType type) {
   case TokenType::T_WHILE:
     return "T_WHILE";
 
-  case TokenType::T_PRINT:
-    return "T_PRINT";
+  case TokenType::T_PRINTLN:
+    return "T_PRINTLN";
 
   case TokenType::T_ID:
     return "T_ID";
