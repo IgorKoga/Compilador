@@ -134,6 +134,8 @@ Scanner::Scanner(string source) : input(source), pos(0), line(1) {
     // Analisa símbolos e operadores
 
     switch (c) {
+    case ',':
+      return Token(TokenType::T_VIRG, ",", line);
     case '!': // possibilita a leitura do println! - Igor
       return Token(TokenType::T_EXCL, "!", line);
     case '+':
@@ -201,7 +203,8 @@ Scanner::Scanner(string source) : input(source), pos(0), line(1) {
 string tokenTypeToString(TokenType type) {
 
   switch (type) {
-
+    case TokenType::T_VIRG:
+    return "T_VIRG";
     case TokenType::T_INT:
     return "T_INT";
     case TokenType::T_IF:

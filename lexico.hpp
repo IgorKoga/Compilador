@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 enum class TokenType {//Todos os tipos de token reconhecidos pelo analisador léxico.
-  T_INT, T_IF, T_ELSE, T_WHILE, T_PRINTLN, T_EXCL, T_FN, // Palavras reservadas
+  T_INT, T_IF, T_ELSE, T_WHILE, T_PRINTLN, T_EXCL, T_FN, T_VIRG, // Palavras reservadas
   T_ID, T_NUM, T_STRING, // Identificadores, números e strings
   T_ASSIGN, T_EQ, // Operadores de atribuição e comparação
   T_PLUS, T_MINUS, T_MULT, T_DIV, // Operadores aritméticos
