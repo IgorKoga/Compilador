@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <iomanip>
 #include "lexico.hpp"
 #include <fstream> //lê arquivos
 #include <sstream> ///lê o arquivo como string
@@ -30,22 +31,29 @@ int main() {
   Scanner scanner(code);
 
   try {
-
     // Lê o primeiro token
     Token token = scanner.nextToken();
 
+    // Cabeçalho da tabela
+    cout << endl;
+    cout << string(60, '-') << endl;
+    cout << left << setw(20) << "Token" 
+         << setw(30) << "Lexema" 
+         << "Linha" << endl;
+    cout << string(60, '-') << endl;
+
     // Continua analisando até encontrar o fim da entrada
     while (token.type != TokenType::T_EOF) {
-
-      // Exibe o tipo do token, o lexema e a linha correspondente
-      cout << tokenTypeToString(token.type) << " -> " << token.lexeme
-           << " (linha " << token.line << ")" << endl;
+      // Exibe os dados formatados em colunas
+      cout << left << setw(20) << tokenTypeToString(token.type)
+           << setw(30) << token.lexeme
+           << token.line << endl;
 
       // Busca o próximo token
       token = scanner.nextToken();
     }
 
-    cout << endl;
+    cout << string(60, '-') << endl;
     cout << "Fim da analise lexica." << endl;
 
   } catch (exception &e) {
