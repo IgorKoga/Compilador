@@ -1,83 +1,11 @@
 #include <cctype>
-#include <iostream>
+#include "lexico.hpp"
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 
 using namespace std;
-
-// Enumeração que representa todos os tipos de tokens
-// reconhecidos pelo analisador léxico.
-enum class TokenType {
-
-  // Palavras reservadas
-  T_INT,
-  T_IF,
-  T_ELSE,
-  T_WHILE,
-  T_PRINTLN, // rust usa println!, lê apenas println - Igor
-  T_EXCL,    // feito para ler o ! do println - Igor
-
-  // Identificadores e números
-  T_ID,
-  T_NUM,
-
-  // Operadores de atribuição e comparação
-  T_ASSIGN,
-  T_EQ,
-
-  // Operadores aritméticos
-  T_PLUS,
-  T_MINUS,
-  T_MULT,
-  T_DIV,
-
-  // Operadores relacionais
-  T_LT,
-  T_GT,
-
-  // Símbolos de agrupamento
-  T_LPAREN,
-  T_RPAREN,
-
-  T_LBRACE,
-  T_RBRACE,
-
-  // Delimitador de instrução
-  T_SEMICOLON,
-
-  // Fim do arquivo/entrada
-  T_EOF
-};
-
-// Estrutura que representa um token encontrado na análise léxica.
-struct Token {
-
-  TokenType type; // Tipo do token
-  string lexeme;  // Texto exato encontrado na entrada
-  int line;       // Linha em que o token foi encontrado
-
-  // Construtor para inicializar um token
-  Token(TokenType t, string l, int ln) : type(t), lexeme(l), line(ln) {}
-};
-
-// Classe responsável por percorrer o código-fonte
-// e transformar caracteres em tokens.
-class Scanner {
-
-private:
-  string input; // Código-fonte de entrada
-  size_t pos;   // Posição atual de leitura
-  int line;     // Linha atual da análise
-
-  // Mapa de palavras reservadas:
-  // associa texto (ex.: "if") ao tipo do token correspondente.
-  unordered_map<string, TokenType> keywords;
-
-public:
-  // Construtor do scanner.
-  // Recebe o código-fonte e inicializa os dados internos.
-  Scanner(string source) : input(source), pos(0), line(1) {
+  Scanner::Scanner(string source) : input(source), pos(0), line(1) {
 
     // Cadastro das palavras reservadas da linguagem
     keywords["int"] = TokenType::T_INT;
@@ -89,7 +17,7 @@ public:
 
   // Retorna o caractere atual sem avançar na leitura.
   // Se chegar ao fim da entrada, retorna '\0'.
-  char peek() {
+  char Scanner::peek() {
 
     if (pos >= input.length()) {
       return '\0';
@@ -99,7 +27,7 @@ public:
   }
 
   // Retorna o caractere atual e avança para a próxima posição.
-  char next() {
+  char Scanner::next() {
 
     char c = peek();
 
@@ -112,7 +40,7 @@ public:
 
   // Ignora espaços em branco, tabulações e quebras de linha.
   // Sempre que encontra '\n', incrementa o contador de linhas.
-  void skipWhitespace() {
+  void Scanner::skipWhitespace() {
 
     while (isspace(peek())) {
 
@@ -124,7 +52,7 @@ public:
 
   // Ignora comentários de uma linha iniciados por "//".
   // Continua lendo até o final da linha ou fim da entrada.
-  void skipComment() {
+  void Scanner::skipComment() {
 
     while (peek() != '\n' && peek() != '\0') {
       next();
@@ -132,7 +60,7 @@ public:
   }
 
   // Lê um número inteiro a partir do primeiro dígito já encontrado.
-  Token scanNumber(char start) {
+  Token Scanner::scanNumber(char start) {
 
     string buffer;
 
@@ -150,7 +78,7 @@ public:
 
   // Lê identificadores ou palavras reservadas.
   // Um identificador pode conter letras, números e underscore.
-  Token scanIdentifier(char start) {
+  Token Scanner::scanIdentifier(char start) {
 
     string buffer;
 
@@ -173,7 +101,7 @@ public:
 
   // Método principal do scanner:
   // retorna o próximo token encontrado na entrada.
-  Token nextToken() {
+  Token Scanner::nextToken() {
 
     // Primeiro, ignora espaços em branco
     skipWhitespace();
@@ -260,8 +188,6 @@ public:
                           "' na linha " + to_string(line));
     }
   }
-};
-
 // Função auxiliar para converter o enum TokenType em texto.
 // Isso facilita a exibição dos tokens no terminal.
 string tokenTypeToString(TokenType type) {
@@ -334,51 +260,4 @@ string tokenTypeToString(TokenType type) {
   default:
     return "UNKNOWN";
   }
-}
-
-int main() {
-
-  // Código-fonte de exemplo que será analisado.
-  // A string raw (R"( ... )") permite escrever o texto em múltiplas linhas.
-  string code = R"(
-
-int soma = 10 + 20;
-
-if (soma == 30) {
-print(soma);
-}
-
-// comentario ignorado
-
-)";
-
-  // Cria o scanner com o código de entrada
-  Scanner scanner(code);
-
-  try {
-
-    // Lê o primeiro token
-    Token token = scanner.nextToken();
-
-    // Continua analisando até encontrar o fim da entrada
-    while (token.type != TokenType::T_EOF) {
-
-      // Exibe o tipo do token, o lexema e a linha correspondente
-      cout << tokenTypeToString(token.type) << " -> " << token.lexeme
-           << " (linha " << token.line << ")" << endl;
-
-      // Busca o próximo token
-      token = scanner.nextToken();
-    }
-
-    cout << endl;
-    cout << "Fim da analise lexica." << endl;
-
-  } catch (exception &e) {
-
-    // Caso ocorra erro léxico, a mensagem será exibida aqui
-    cerr << e.what() << endl;
-  }
-
-  return 0;
 }
