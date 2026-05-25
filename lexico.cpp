@@ -17,8 +17,8 @@ Scanner::Scanner(string source) : input(source), pos(0), line(1) {
   keywords["mut"] = TokenType::T_MUT; //cadastro de mut do rust
 }
 
-  // Retorna o caractere atual sem avançar na leitura.
-  // Se chegar ao fim da entrada, retorna '\0'.
+  // Retorna o caractere atual sem avançar na leitura
+  // Se chegar ao fim da entrada, retorna '\0'
   char Scanner::peek() {
     if (pos >= input.length()) {
       return '\0';
@@ -45,8 +45,8 @@ Scanner::Scanner(string source) : input(source), pos(0), line(1) {
     }
   }
 
-  // Ignora comentários de uma linha iniciados por "//".
-  // Continua lendo até o final da linha ou fim da entrada.
+  // Ignora comentários de uma linha iniciados por "//"
+  // Continua lendo até o final da linha ou fim da entrada
   void Scanner::skipComment() {
     while (peek() != '\n' && peek() != '\0') {
       next();
