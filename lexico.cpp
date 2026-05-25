@@ -13,6 +13,8 @@ Scanner::Scanner(string source) : input(source), pos(0), line(1) {
   keywords["while"] = TokenType::T_WHILE;
   keywords["println"] = TokenType::T_PRINTLN; // cadastro de println do rust
   keywords["fn"] = TokenType::T_FN; // cadastro de fn do rust
+  keywords["let"] = TokenType::T_LET; //cadastro de let do rust
+  keywords["mut"] = TokenType::T_MUT; //cadastro de mut do rust
 }
 
   // Retorna o caractere atual sem avançar na leitura.
@@ -55,7 +57,7 @@ Scanner::Scanner(string source) : input(source), pos(0), line(1) {
   void Scanner::skipMultilineComment() {
     while (peek() != '\0') {
       if (peek() == '\n') line++;
-      
+
       if (peek() == '*') {
         next();
         if (peek() == '/') {
@@ -82,10 +84,10 @@ Scanner::Scanner(string source) : input(source), pos(0), line(1) {
       }
       buffer += next();
     }
-    
+
     return Token(isFloat ? TokenType::T_FLOAT : TokenType::T_NUM, buffer, line);
   }
-  
+
   // Lê identificadores ou palavras reservadas.
   // Um identificador pode conter letras, números e underscore.
   Token Scanner::scanIdentifier(char start) {
@@ -227,6 +229,11 @@ Scanner::Scanner(string source) : input(source), pos(0), line(1) {
 string tokenTypeToString(TokenType type) {
 
   switch (type) {
+
+    case TokenType::T_LET:
+    return "T_LET";
+    case TokenType::T_MUT:
+    return "T_MUT";
     case TokenType::T_VIRG:
     return "T_VIRG";
     case TokenType::T_INT:
