@@ -28,8 +28,7 @@ Token Parser::previous() const {
 
 // Verifica se já consumimos todos os tokens.
 bool Parser::isAtEnd() const {
-  return current >= tokens.size() ||
-         tokens[current].type == TokenType::T_EOF;
+  return current >= tokens.size() || tokens[current].type == TokenType::T_EOF;
 }
 
 // Avança o cursor e devolve o token consumido.
@@ -47,7 +46,8 @@ Token Parser::match(TokenType type, const std::string &errorMessage) {
     return advance();
   error(peek(), "Token inesperado: esperado '" + tokenTypeToString(type) +
                     "'. " + errorMessage);
-  // Nunca chega aqui, mas retornamos um token de fallback para satisfazer o compilador.
+  // Nunca chega aqui, mas retornamos um token de fallback para satisfazer o
+  // compilador.
   return Token{TokenType::T_EOF, "", -1};
 }
 
@@ -58,4 +58,40 @@ void Parser::error(const Token &token, const std::string &message) {
   throw std::runtime_error(oss.str());
 }
 
-// tokenTypeToString is defined in lexico.cpp; we use the declaration from lexico.hpp
+// tokenTypeToString is defined in lexico.cpp; we use the declaration from
+// lexico.hpp
+
+// -----------------------------------------------------------------------------
+// Métodos de Parsing
+// -----------------------------------------------------------------------------
+
+// Programa inteiro → lista de declarações/expressões
+std::unique_ptr<ProgramNode> Parser::parseProgram();
+
+// Declaração ou comando (Statement)
+std::unique_ptr<StatementNode> Parser::parseStatement();
+
+// Declaração de variável (let, mut, int …)
+std::unique_ptr<DeclarationNode> Parser::parseDeclaration();
+
+// Atribuição (identificador = expressão)
+std::unique_ptr<AssignmentNode> Parser::parseAssignment();
+
+// Comando de impressão (println! …)
+std::unique_ptr<PrintNode> Parser::parsePrint();
+
+// Estrutura condicional
+std::unique_ptr<IfNode> Parser::parseIf();
+
+// Laço while
+std::unique_ptr<WhileNode> Parser::parseWhile();
+
+// Expressão ⇐→ nível de prioridade (operadores lógicos/aritméticos)
+std::unique_ptr<ExpressionNode> Parser::parseExpression();
+std::unique_ptr<ExpressionNode> Parser::parseEquality();
+std::unique_ptr<ExpressionNode> Parser::parseComparison();
+std::unique_ptr<ExpressionNode> Parser::parseTerm();   // + e -
+std::unique_ptr<ExpressionNode> Parser::parseFactor(); // * e /
+std::unique_ptr<ExpressionNode> Parser::parseUnary();  // - e !
+std::unique_ptr<ExpressionNode>
+Parser::parsePrimary(); // literals, id, parênteses
