@@ -2,6 +2,8 @@
 #include <string>
 #include <iomanip>
 #include "lexico.hpp"
+#include "parser.hpp"
+#include "ast.hpp"
 #include <fstream> //lê arquivos
 #include <sstream> ///lê o arquivo como string
 using namespace std;
@@ -9,7 +11,7 @@ using namespace std;
 int main() {
 
  // 1. Nome do arquivo fixo
- string folder = "codigoRust/"; //endereço padrão;
+ string folder = "codigoRust/"; //endereço padrão
  string fileName;
  cout << "Digite o nome/endereco do arquivo: ";
  cin >> fileName;
@@ -31,9 +33,6 @@ int main() {
   Scanner scanner(code);
 
   try {
-    // Lê o primeiro token
-    Token token = scanner.nextToken();
-
     // Cabeçalho da tabela
     cout << endl;
     cout << string(60, '-') << endl;
@@ -43,18 +42,26 @@ int main() {
     cout << string(60, '-') << endl;
 
     // Continua analisando até encontrar o fim da entrada
-    while (token.type != TokenType::T_EOF) {
-      // Exibe os dados formatados em colunas
-      cout << left << setw(20) << tokenTypeToString(token.type)
-           << setw(30) << token.lexeme
-           << token.line << endl;
+    // while (token.type != TokenType::T_EOF) {
+    //   // Exibe os dados formatados em colunas
+    //   cout << left << setw(20) << tokenTypeToString(token.type)
+    //        << setw(30) << token.lexeme
+    //        << token.line << endl;
 
-      // Busca o próximo token
-      token = scanner.nextToken();
-    }
+    //   // Busca o próximo token
+    //   token = scanner.nextToken();
+    // }
 
-    cout << string(60, '-') << endl;
-    cout << "Fim da analise lexica." << endl;
+    // cout << string(60, '-') << endl;
+    // cout << "Fim da analise lexica." << endl;
+
+    Parser parser(scanner);
+    auto ast = parser.parseProgram();
+
+    cout << endl << string(60, '-') << endl;
+    cout << "Analise sintatica concluida com sucesso!" << endl;
+    cout << "Arvore Sintatica Abstrata (JSON):" << endl;
+    cout << ast->toJson() << endl;
 
   } catch (exception &e) {
 

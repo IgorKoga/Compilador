@@ -1,255 +1,189 @@
 #ifndef AST_HPP
 #define AST_HPP
 
-#include <memory>  // Necessário para std::unique_ptr
-#include <sstream> //Adicionado para formatação de strings/JSON
+#include <iostream>
 #include <string>
-#include <vector> //Necessario para o uso de ponteiros inteligentes
+#include <vector>
+#include <memory>
 
-// A raiz de qualquer elemento que exista na nossa árvore sintática.
+// Escapa aspas para JSON
+inline std::string escapeJson(const std::string& str) {
+    std::string result = "";
+    for (char c : str) {
+        if (c == '"') result += "\\\"";
+        else if (c == '\\') result += "\\\\";
+        else if (c == '\n') result += "\\n";
+        else result += c;
+    }
+    return result;
+}
+
+// Classe base para todos os nós da AST
 class ASTNode {
 public:
-  // Destrutor virtual para garantir que ao deletar um nó, as subclasses também
-  // sejam limpas da memória corretamente.
-  virtual ~ASTNode() = default;
-
-  // Método que cada nó concreto terá que implementar para imprimir a si mesmo
-  // como JSON. O parâmetro 'indent' serve para formatar o JSON de forma legível
-  // (com espaços).
-  virtual std::string toJSON(int indent = 0) const = 0;
-
-protected:
-  // Função auxiliar que gera espaços em branco de recuo (indentação)
-  std::string getIndent(int indent) const {
-    return std::string(indent * 2, ' ');
-  }
+    virtual ~ASTNode() = default;
+    virtual std::string toJson() const = 0; 
 };
 
-// Classe intermediaria para Expressões
-class ExpressionNode : public ASTNode {};
+// --- EXPRESSÕES (Retornam valores) ---
+class Expr : public ASTNode {};
 
-// Nó para números (ex:10, 5.5)
-class NumberNode : public ExpressionNode {
+class NumberExpr : public Expr {
+    std::string value; 
 public:
-  std::string value;
-
-  NumberNode(std::string val) : value(val) {}
-
-  std::string toJSON(int indent = 0) const override {
-    std::ostringstream ss;
-    ss << getIndent(indent) << "{\n"
-       << getIndent(indent + 1) << "\"type\": \"NumberNode\",\n"
-       << getIndent(indent + 1) << "\"value\": " << value << "\n"
-       << getIndent(indent) << "}";
-    return ss.str();
-  };
+    NumberExpr(std::string val) : value(val) {}
+    std::string toJson() const override { return "{\"type\": \"Number\", \"value\": " + value + "}"; }
 };
 
-// Nó para identificadores/variáveis
-class VariableNode : public ExpressionNode {
+class FloatExpr : public Expr {
+    std::string value; 
 public:
-  std::string name;
-
-  VariableNode(std::string n) : name(n) {}
-
-  std::string toJSON(int indent = 0) const override {
-    std::ostringstream ss;
-    ss << getIndent(indent) << "{\n"
-       << getIndent(indent + 1) << "\"type\": \"VariableNode\",\n"
-       << getIndent(indent + 1) << "\"name\": \"" << name << "\"\n"
-       << getIndent(indent) << "}";
-    return ss.str();
-  };
+    FloatExpr(std::string val) : value(val) {}
+    std::string toJson() const override { return "{\"type\": \"Float\", \"value\": " + value + "}"; }
 };
 
-// Nó para operações binárias
-// Ele possui um operador (+,-,*,/,<,>,==) e dois nós filhos (esquerda e
-// direita)
-class BinaryOpNode : public ExpressionNode {
+class StringExpr : public Expr {
+    std::string value; 
 public:
-  std::string op;
-  std::unique_ptr<ExpressionNode> left;
-  std::unique_ptr<ExpressionNode> right;
-
-  BinaryOpNode(std::string o, std::unique_ptr<ExpressionNode> l,
-               std::unique_ptr<ExpressionNode> r)
-      : op(o), left(std::move(l)), right(std::move(r)) {}
-
-  std::string toJSON(int indent = 0) const override {
-    std::ostringstream ss;
-    ss << getIndent(indent) << "{\n"
-       << getIndent(indent + 1) << "\"type\": \"BinaryOpNode\",\n"
-       << getIndent(indent + 1) << "\"op\": \"" << op << "\",\n"
-       << getIndent(indent + 1) << "\"left\": \n"
-       << left->toJSON(indent + 2) << ",\n"
-       << getIndent(indent + 1) << "\"right\": \n"
-       << right->toJSON(indent + 2) << "\n"
-       << getIndent(indent) << "}";
-    return ss.str();
-  }
+    StringExpr(std::string val) : value(val) {}
+    std::string toJson() const override { return "{\"type\": \"String\", \"value\": \"" + escapeJson(value) + "\"}"; }
 };
 
-// Classe intermediária para comandos
-class StatementNode : public ASTNode {};
-
-// Nó para comando de impressão
-class PrintNode : public StatementNode {
+class IdentifierExpr : public Expr {
+    std::string name;
 public:
-  std::unique_ptr<ExpressionNode> expression;
-
-  PrintNode(std::unique_ptr<ExpressionNode> expr)
-      : expression(std::move(expr)) {}
-
-  std::string toJSON(int indent = 0) const override {
-    std::ostringstream ss;
-    ss << getIndent(indent) << "{\n"
-       << getIndent(indent + 1) << "\"type\": \"PrintNode\",\n"
-       << getIndent(indent + 1) << "\"expression\": \n"
-       << expression->toJSON(indent + 2) << "\n"
-       << getIndent(indent) << "}";
-    return ss.str();
-  }
+    IdentifierExpr(std::string n) : name(n) {}
+    std::string toJson() const override { return "{\"type\": \"Identifier\", \"name\": \"" + name + "\"}"; }
 };
 
-// Nó para atribuição
-class AssignmentNode : public StatementNode {
+class BinaryExpr : public Expr {
+    std::string op; // "+", "-", "*", "/", "<", ">", "=="
+    std::unique_ptr<Expr> left;
+    std::unique_ptr<Expr> right;
 public:
-  std::string id;
-  std::unique_ptr<ExpressionNode> expression;
-
-  AssignmentNode(std::string identifier, std::unique_ptr<ExpressionNode> expr)
-      : id(identifier), expression(std::move(expr)) {}
-
-  std::string toJSON(int indent = 0) const override {
-    std::ostringstream ss;
-    ss << getIndent(indent) << "{\n"
-       << getIndent(indent + 1) << "\"type\": \"AssignmentNode\",\n"
-       << getIndent(indent + 1) << "\"id\": \"" << id << "\",\n"
-       << getIndent(indent + 1) << "\"expression\": \n"
-       << expression->toJSON(indent + 2) << "\n"
-       << getIndent(indent) << "}";
-    return ss.str();
-  }
-};
-
-// Nó para declaração de variáveis
-class DeclarationNode : public StatementNode {
-public:
-  std::string type; // Adicionado para guardar o tipo da variável
-  std::string id;
-  std::unique_ptr<ExpressionNode>
-      initializer; // pode ser nulo se não houver inicialização
-
-  DeclarationNode(std::string type, std::string id,
-                  std::unique_ptr<ExpressionNode> init = nullptr)
-      : type(type), id(id), initializer(std::move(init)) {}
-
-  std::string toJSON(int indent = 0) const override {
-    std::ostringstream ss;
-    ss << getIndent(indent) << "{\n"
-       << getIndent(indent + 1) << "\"type\": \"DeclarationNode\",\n"
-       << getIndent(indent + 1) << "\"var_type\": \"" << type << "\",\n"
-       << getIndent(indent + 1) << "\"id\": \"" << id << "\"\n";
-
-    if (initializer) {
-      ss << ",\n"
-         << getIndent(indent + 1) << "\"initializer\": \n"
-         << initializer->toJSON(indent + 2);
+    BinaryExpr(std::unique_ptr<Expr> l, std::string o, std::unique_ptr<Expr> r)
+        : left(std::move(l)), op(o), right(std::move(r)) {}
+    std::string toJson() const override {
+        return "{\"type\": \"BinaryExpr\", \"op\": \"" + op + "\", \"left\": " + left->toJson() + ", \"right\": " + right->toJson() + "}";
     }
-    ss << "\n" << getIndent(indent) << "}";
-    return ss.str();
-  }
 };
 
-// Nó para estrutura condicional
-class IfNode : public StatementNode {
-public:
-  std::unique_ptr<ExpressionNode> condition;
-  std::vector<std::unique_ptr<StatementNode>> thenBranch;
-  std::vector<std::unique_ptr<StatementNode>> elseBranch; // Pode ser vazio
-  IfNode(std::unique_ptr<ExpressionNode> cond,
-         std::vector<std::unique_ptr<StatementNode>> thenB,
-         std::vector<std::unique_ptr<StatementNode>> elseB = {})
-      : condition(std::move(cond)), thenBranch(std::move(thenB)),
-        elseBranch(std::move(elseB)) {}
-  std::string toJSON(int indent = 0) const override {
-    std::ostringstream ss;
-    ss << getIndent(indent) << "{\n"
-       << getIndent(indent + 1) << "\"type\": \"IfNode\",\n"
-       << getIndent(indent + 1) << "\"condition\": \n"
-       << condition->toJSON(indent + 2) << ",\n"
-       << getIndent(indent + 1) << "\"then\": [\n";
+// --- INSTRUÇÕES (Não retornam valores) ---
+class Statement : public ASTNode {};
 
-    for (size_t i = 0; i < thenBranch.size(); ++i) {
-      ss << thenBranch[i]->toJSON(indent + 2);
-      if (i < thenBranch.size() - 1)
-        ss << ",\n";
+class LetDeclStmt : public Statement {
+    std::string id;
+    bool isMut;
+    std::unique_ptr<Expr> initializer; // pode ser nulo se for só "let x;"
+public:
+    LetDeclStmt(std::string name, bool mut, std::unique_ptr<Expr> init) 
+        : id(name), isMut(mut), initializer(std::move(init)) {}
+    std::string toJson() const override {
+        std::string initJson = initializer ? initializer->toJson() : "null";
+        std::string mutStr = isMut ? "true" : "false";
+        return "{\"type\": \"LetDecl\", \"id\": \"" + id + "\", \"isMut\": " + mutStr + ", \"init\": " + initJson + "}";
     }
-    ss << "\n" << getIndent(indent + 1) << "]";
-    if (!elseBranch.empty()) {
-      ss << ",\n" << getIndent(indent + 1) << "\"else\": [\n";
-      for (size_t i = 0; i < elseBranch.size(); ++i) {
-        ss << elseBranch[i]->toJSON(indent + 2);
-        if (i < elseBranch.size() - 1)
-          ss << ",\n";
-      }
-      ss << "\n" << getIndent(indent + 1) << "]";
+};
+
+class AssignmentStmt : public Statement {
+    std::string id;
+    std::unique_ptr<Expr> expr;
+public:
+    AssignmentStmt(std::string name, std::unique_ptr<Expr> e) : id(name), expr(std::move(e)) {}
+    std::string toJson() const override {
+        return "{\"type\": \"Assignment\", \"id\": \"" + id + "\", \"expr\": " + expr->toJson() + "}";
+    }
+};
+
+class PrintlnStmt : public Statement {
+    std::vector<std::unique_ptr<Expr>> args;
+public:
+    PrintlnStmt(std::vector<std::unique_ptr<Expr>> a) : args(std::move(a)) {}
+    std::string toJson() const override {
+        std::string json = "{\"type\": \"Println\", \"args\": [";
+        for (size_t i = 0; i < args.size(); ++i) {
+            json += args[i]->toJson();
+            if (i < args.size() - 1) json += ", ";
+        }
+        json += "]}";
+        return json;
+    }
+};
+
+class BlockStmt : public Statement {
+public:
+    std::vector<std::unique_ptr<Statement>> statements;
+
+    void addStatement(std::unique_ptr<Statement> stmt) {
+        statements.push_back(std::move(stmt));
     }
 
-    ss << "\n" << getIndent(indent) << "}";
-    return ss.str();
-  }
-};
-
-// Nó para laço de repetição While
-class WhileNode : public StatementNode {
-public:
-  std::unique_ptr<ExpressionNode> condition;
-  std::vector<std::unique_ptr<StatementNode>> body;
-
-  WhileNode(std::unique_ptr<ExpressionNode> cond,
-            std::vector<std::unique_ptr<StatementNode>> b)
-      : condition(std::move(cond)), body(std::move(b)) {}
-
-  std::string toJSON(int indent = 0) const override {
-    std::ostringstream ss;
-    ss << getIndent(indent) << "{\n"
-       << getIndent(indent + 1) << "\"type\": \"WhileNode\",\n"
-       << getIndent(indent + 1) << "\"condition\": \n"
-       << condition->toJSON(indent + 2) << ",\n"
-       << getIndent(indent + 1) << "\"body\": [\n";
-    for (size_t i = 0; i < body.size(); ++i) {
-      ss << body[i]->toJSON(indent + 2);
-      if (i < body.size() - 1)
-        ss << ",\n";
+    std::string toJson() const override {
+        std::string json = "{\"type\": \"Block\", \"statements\": [";
+        for (size_t i = 0; i < statements.size(); ++i) {
+            json += statements[i]->toJson();
+            if (i < statements.size() - 1) json += ", ";
+        }
+        json += "]}";
+        return json;
     }
-    ss << "\n" << getIndent(indent + 1) << "]\n" << getIndent(indent) << "}";
-    return ss.str();
-  }
 };
 
-// Nó raiz da árvore sintática, contendo toda a lista de comandos do programa
-class ProgramNode : public ASTNode {
+class IfStmt : public Statement {
+    std::unique_ptr<Expr> condition;
+    std::unique_ptr<BlockStmt> thenBranch;
+    std::unique_ptr<BlockStmt> elseBranch; // null se não houver else
 public:
-  std::vector<std::unique_ptr<StatementNode>> statements;
+    IfStmt(std::unique_ptr<Expr> cond, std::unique_ptr<BlockStmt> thenB, std::unique_ptr<BlockStmt> elseB)
+        : condition(std::move(cond)), thenBranch(std::move(thenB)), elseBranch(std::move(elseB)) {}
 
-  ProgramNode(std::vector<std::unique_ptr<StatementNode>> stmts)
-      : statements(std::move(stmts)) {}
-
-  std::string toJSON(int indent = 0) const override {
-    std::ostringstream ss;
-    ss << getIndent(indent) << "{\n"
-       << getIndent(indent + 1) << "\"type\": \"ProgramNode\",\n"
-       << getIndent(indent + 1) << "\"statements\": [\n";
-
-    for (size_t i = 0; i < statements.size(); ++i) {
-      ss << statements[i]->toJSON(indent + 2);
-      if (i < statements.size() - 1)
-        ss << ",\n";
+    std::string toJson() const override {
+        std::string elseJson = elseBranch ? elseBranch->toJson() : "null";
+        return "{\"type\": \"IfStmt\", \"condition\": " + condition->toJson() + 
+               ", \"thenBranch\": " + thenBranch->toJson() + ", \"elseBranch\": " + elseJson + "}";
     }
-    ss << "\n" << getIndent(indent + 1) << "]\n" << getIndent(indent) << "}";
-    return ss.str();
-  }
 };
 
-#endif // AST_HPP
+class WhileStmt : public Statement {
+    std::unique_ptr<Expr> condition;
+    std::unique_ptr<BlockStmt> body;
+public:
+    WhileStmt(std::unique_ptr<Expr> cond, std::unique_ptr<BlockStmt> b)
+        : condition(std::move(cond)), body(std::move(b)) {}
+
+    std::string toJson() const override {
+        return "{\"type\": \"WhileStmt\", \"condition\": " + condition->toJson() + 
+               ", \"body\": " + body->toJson() + "}";
+    }
+};
+
+class FnDeclStmt : public Statement {
+    std::string name;
+    std::unique_ptr<BlockStmt> body;
+public:
+    FnDeclStmt(std::string n, std::unique_ptr<BlockStmt> b)
+        : name(n), body(std::move(b)) {}
+
+    std::string toJson() const override {
+        return "{\"type\": \"FnDecl\", \"name\": \"" + name + "\", \"body\": " + body->toJson() + "}";
+    }
+};
+
+// Nó raiz do programa
+class Program : public ASTNode {
+    std::vector<std::unique_ptr<Statement>> statements;
+public:
+    void addStatement(std::unique_ptr<Statement> stmt) { statements.push_back(std::move(stmt)); }
+    std::string toJson() const override {
+        std::string json = "{\n  \"type\": \"Program\",\n  \"body\": [\n";
+        for (size_t i = 0; i < statements.size(); ++i) {
+            json += "    " + statements[i]->toJson();
+            if (i < statements.size() - 1) json += ",";
+            json += "\n";
+        }
+        json += "  ]\n}";
+        return json;
+    }
+};
+
+#endif

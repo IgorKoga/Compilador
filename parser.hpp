@@ -1,58 +1,43 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
-#include "ast.hpp"
 #include "lexico.hpp"
-#include <memory>
-#include <cstring>
+#include "ast.hpp"
 #include <vector>
+#include <memory>
+#include <stdexcept>
 
 class Parser {
 private:
-  std::vector<Token> tokens; // Lista de tokens gerada pelo scanner
-  size_t current;            // Posição do token atual sendo analisado
+    Scanner& scanner;
+    Token currentToken;
 
-  // --- Métodos Auxiliares de Navegação ---
+    // Funções auxiliares obrigatórias
+    void advance();
+    bool match(TokenType expected);
+    void consume(TokenType expected, const std::string& errorMessage);
+    void error(const std::string& message);
+    void synchronize(); 
 
-  // Retorna o token atual sem consumi-lo
-  Token peek() const;
+    // Funções de parsing por regra
+    std::unique_ptr<BlockStmt> parseBlock();
+    std::unique_ptr<Statement> parseStatement();
+    std::unique_ptr<Statement> parseDeclaration(); 
+    std::unique_ptr<Statement> parseAssignment();
+    std::unique_ptr<Statement> parsePrintStmt();  
+    std::unique_ptr<Statement> parseIfStmt();
+    std::unique_ptr<Statement> parseWhileStmt();
+    std::unique_ptr<Statement> parseFnDecl();
 
-  // Retorna o token anterior
-  Token previous() const;
-
-  // Verifica se chegamos ao fim dos tokens
-  bool isAtEnd() const;
-
-  // Avança para o próximo token e o devolve
-  Token advance();
-
-  // Verifica se o token atual tem o tipo esperado; consome ou lança erro
-  Token match(TokenType type, const std::string &errorMessage);
-
-  // Lança um erro sintático formatado com a linha do token
-  void error(const Token &token, const std::string &message);
+    // Regras de expressões (associatividade esquerda)
+    std::unique_ptr<Expr> parseExpression(); 
+    std::unique_ptr<Expr> parseComparison(); 
+    std::unique_ptr<Expr> parseTerm();       
+    std::unique_ptr<Expr> parseFactor();     
 
 public:
-  // Construtor recebe a lista de tokens do scanner
-  Parser(const std::vector<Token> &tokenList);
-
-  // --- Métodos de Parsing ---
-  std::unique_ptr<ProgramNode> parseProgram();
-  std::unique_ptr<StatementNode> parseStatement();
-  std::unique_ptr<DeclarationNode> parseDeclaration();
-  std::unique_ptr<AssignmentNode> parseAssignment();
-  std::unique_ptr<PrintNode> parsePrint();
-  std::unique_ptr<IfNode> parseIf();
-  std::unique_ptr<WhileNode> parseWhile();
-
-  // Expressão – nível de precedência
-  std::unique_ptr<ExpressionNode> parseExpression();
-  std::unique_ptr<ExpressionNode> parseEquality();
-  std::unique_ptr<ExpressionNode> parseComparison();
-  std::unique_ptr<ExpressionNode> parseTerm();
-  std::unique_ptr<ExpressionNode> parseFactor();
-  std::unique_ptr<ExpressionNode> parseUnary();
-  std::unique_ptr<ExpressionNode> parsePrimary();
+    Parser(Scanner& scan);
+    std::unique_ptr<Program> parseProgram();
 };
 
-#endif // PARSER_HPP
+#endif

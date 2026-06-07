@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-enum class TokenType {//Todos os tipos de token reconhecidos pelo analisador léxico.
+enum class TokenType {//Todos os tipos de token reconhecidos pelo analisador léxico
   T_LET, T_MUT, T_INT, T_IF, T_ELSE, T_WHILE, T_PRINTLN, T_EXCL, T_FN, T_VIRG, // Palavras reservadas
   T_ID, T_NUM, T_FLOAT, T_STRING, // Identificadores, números e strings
   T_ASSIGN, T_EQ, // Operadores de atribuição e comparação
@@ -32,7 +32,7 @@ private:
   int line;     // Linha atual da análise
 
   // Mapa de palavras reservadas:
-  // associa texto (ex.: "if") ao tipo do token correspondente.
+  // associa texto (ex.: "if") ao tipo do token correspondente
   std::unordered_map<std::string, TokenType> keywords;
 
   //definição apenas das assinaturas
