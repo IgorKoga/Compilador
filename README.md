@@ -1,4 +1,4 @@
-# Analisador Léxico e Sintático - Compiladores
+﻿# Analisador Léxico e Sintático - Compiladores
 
 Este projeto é um compilador acadêmico (contendo Analisador Léxico e Sintático) desenvolvido para a disciplina de Compiladores. Ele foi evoluído de um protótipo simples para uma ferramenta modular capaz de processar arquivos de código da linguagem **Rust** e gerar uma Árvore Sintática Abstrata (AST) no formato JSON.
 
@@ -47,14 +47,24 @@ A exibição final constrói a árvore do código inteiro e exporta automaticame
 
 ### 💻 Como Compilar e Rodar
 
-Sempre que houver alterações, compile o projeto utilizando o g++:
+Você pode compilar todos os arquivos juntos. O programa detecta se o executável gerado contém a palavra `scanner` no nome e, se contiver, oculta a árvore JSON automaticamente:
+
+#### 1. Para gerar o `compiler.exe` (Exibe Tabela de Tokens + JSON):
 ```bash
 g++ main.cpp lexico.cpp parser.cpp -o compiler.exe
 ```
-
-Para rodar o executável:
+**Para rodar:**
 ```bash
 ./compiler.exe
+```
+
+#### 2. Para gerar o `scanner.exe` (Exibe APENAS a Tabela de Tokens):
+```bash
+g++ main.cpp lexico.cpp parser.cpp -o scanner.exe
+```
+**Para rodar:**
+```bash
+./scanner.exe
 ```
 
 *Nota: O programa buscará os arquivos dentro da pasta local `codigoRust/`. Tente rodar os arquivos de teste como o `soma.rs`.*
