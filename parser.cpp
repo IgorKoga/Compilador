@@ -2,7 +2,7 @@
 #include <iostream>
 
 Parser::Parser(Scanner& scan) : scanner(scan), currentToken(TokenType::T_EOF, "", 0) {
-    advance(); // Inicializa lendo o primeiro token
+    advance(); // 
 }
 
 void Parser::advance() {
