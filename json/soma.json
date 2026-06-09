@@ -1,0 +1,6 @@
+{
+  "type": "Program",
+  "body": [
+    {"type": "FnDecl", "name": "main", "body": {"type": "Block", "statements": [{"type": "LetDecl", "id": "a", "isMut": true, "init": {"type": "Number", "value": 10}}, {"type": "LetDecl", "id": "b", "isMut": false, "init": {"type": "Number", "value": 20}}, {"type": "LetDecl", "id": "resultado", "isMut": false, "init": {"type": "BinaryExpr", "op": "+", "left": {"type": "Identifier", "name": "a"}, "right": {"type": "Identifier", "name": "b"}}}, {"type": "LetDecl", "id": "taxa_correcao", "isMut": false, "init": {"type": "Float", "value": 5.75}}, {"type": "LetDecl", "id": "pi_aproximado", "isMut": false, "init": {"type": "Float", "value": 3.14159}}, {"type": "Println", "args": [{"type": "String", "value": "A soma de {} com {} eh {}"}, {"type": "Identifier", "name": "a"}, {"type": "Identifier", "name": "b"}, {"type": "Identifier", "name": "resultado"}]}]}}
+  ]
+}

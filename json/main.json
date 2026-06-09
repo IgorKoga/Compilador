@@ -1,0 +1,6 @@
+{
+  "type": "Program",
+  "body": [
+    {"type": "FnDecl", "name": "main", "body": {"type": "Block", "statements": [{"type": "Println", "args": [{"type": "String", "value": "Hello, world!"}]}]}}
+  ]
+}

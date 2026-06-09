@@ -9,8 +9,8 @@
 #endif
 
 #include <fstream> // lê arquivos
-#include <sstream> // lê o arquivo como string
 #include <limits>  // necessário para limpar o buffer do cin
+#include <sstream> // lê o arquivo como string
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -23,7 +23,8 @@ int main(int argc, char *argv[]) {
   isLexicoOnly = true;
 #endif
 
-  // Se não for especificamente nenhum (ex: compilador.exe ou main.exe), executa ambos
+  // Se não for especificamente nenhum (ex: compilador.exe ou main.exe), executa
+  // ambos
   bool runBoth = !isLexicoOnly && !isSintaticoOnly;
 
   // 1. Nome do arquivo fixo
@@ -56,13 +57,16 @@ int main(int argc, char *argv[]) {
   try {
     if (isLexicoOnly || runBoth) {
       if (runBoth) {
-        cout << "\n============================================================" << endl;
-        cout << "                  1. FASE LEXICA (TOKENS)                   " << endl;
-        cout << "============================================================" << endl;
+        cout << "\n============================================================"
+             << endl;
+        cout << "                  1. FASE LEXICA (TOKENS)                   "
+             << endl;
+        cout << "============================================================"
+             << endl;
       } else {
         cout << endl;
       }
-      
+
       // Cabeçalho da tabela
       cout << string(60, '-') << endl;
       cout << left << setw(20) << "Token" << setw(30) << "Lexema" << "Linha"
@@ -87,9 +91,12 @@ int main(int argc, char *argv[]) {
 #ifndef LEXICO_ONLY
     if (isSintaticoOnly || runBoth) {
       if (runBoth) {
-        cout << "\n============================================================" << endl;
-        cout << "                  2. FASE SINTATICA (AST JSON)              " << endl;
-        cout << "============================================================" << endl;
+        cout << "\n============================================================"
+             << endl;
+        cout << "                  2. FASE SINTATICA (ARVORE E JSON)         "
+             << endl;
+        cout << "============================================================"
+             << endl;
       }
 
       // Cria um scanner separado para o parser
@@ -97,10 +104,43 @@ int main(int argc, char *argv[]) {
       Parser parser(parserScanner);
       auto ast = parser.parseProgram();
 
-      cout << ast->toJson() << endl;
+      // Exibe a representação estruturada da árvore sintática (AST) no terminal
+      cout << "\n--- Representacao da Arvore Sintatica (AST) ---" << endl;
+      ast->print(); // Chamada para exibir a árvore de forma hierárquica e
+                    // identada
+      cout << "-----------------------------------------------" << endl;
+
+      // Determina o nome do arquivo JSON a ser gerado com base no arquivo de
+      // entrada
+      size_t lastSlash = fileName.find_last_of("/\\");
+      string baseName = (lastSlash == string::npos)
+                            ? fileName
+                            : fileName.substr(lastSlash + 1);
+
+      // Remove a extensão original (.rs) e adiciona .json
+      size_t lastDot = baseName.find_last_of(".");
+      string jsonFileName = (lastDot == string::npos)
+                                ? baseName + ".json"
+                                : baseName.substr(0, lastDot) + ".json";
+      string jsonPath =
+          "json/" +
+          jsonFileName; // Caminho da pasta de destino para os arquivos JSON
+
+      // Cria e abre o arquivo JSON para escrita
+      ofstream jsonFile(jsonPath);
+      if (jsonFile.is_open()) {
+        jsonFile << ast->toJson(); // Grava a representação em JSON gerada
+                                   // recursivamente pela AST
+        jsonFile.close();
+        cout << "\n[Sucesso] Arquivo AST JSON salvo em: " << jsonPath << endl;
+      } else {
+        cerr << "\n[Erro] Nao foi possivel criar o arquivo JSON em: "
+             << jsonPath << endl;
+      }
 
       if (runBoth) {
-        cout << "============================================================" << endl;
+        cout << "============================================================"
+             << endl;
       }
       cout << "Fim da analise sintatica." << endl;
     }

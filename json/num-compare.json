@@ -1,0 +1,6 @@
+{
+  "type": "Program",
+  "body": [
+    {"type": "FnDecl", "name": "main", "body": {"type": "Block", "statements": [{"type": "LetDecl", "id": "x", "isMut": false, "init": {"type": "Number", "value": 10}}, {"type": "IfStmt", "condition": {"type": "BinaryExpr", "op": ">", "left": {"type": "Identifier", "name": "x"}, "right": {"type": "Number", "value": 5}}, "thenBranch": {"type": "Block", "statements": [{"type": "Println", "args": [{"type": "String", "value": "{} é maior que 5"}, {"type": "Identifier", "name": "x"}]}]}, "elseBranch": {"type": "Block", "statements": [{"type": "Println", "args": [{"type": "String", "value": "{} é menor que 5"}, {"type": "Identifier", "name": "x"}]}]}}]}}
+  ]
+}
