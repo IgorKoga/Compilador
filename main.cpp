@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#ifndef SCANNER_ONLY
+#ifndef LEXICO_ONLY
 #include "ast.hpp"
 #include "parser.hpp"
 #endif
@@ -13,12 +13,12 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  // Verifica se o executável foi chamado como "scanner"
+  // Verifica se o executável foi chamado como "lexico"
   string execName = argv[0];
-  bool isScannerOnly = (execName.find("scanner") != string::npos);
+  bool isLexicoOnly = (execName.find("lexico") != string::npos);
 
-#ifdef SCANNER_ONLY
-  isScannerOnly = true;
+#ifdef LEXICO_ONLY
+  isLexicoOnly = true;
 #endif
 
   // 1. Nome do arquivo fixo
@@ -46,37 +46,36 @@ int main(int argc, char *argv[]) {
   Scanner lexScanner(code);
 
   try {
-    // Cabeçalho da tabela
-    cout << endl;
-    cout << string(60, '-') << endl;
-    cout << left << setw(20) << "Token" << setw(30) << "Lexema" << "Linha"
-         << endl;
-    cout << string(60, '-') << endl;
+    if (isLexicoOnly) {
+      // Cabeçalho da tabela
+      cout << endl;
+      cout << string(60, '-') << endl;
+      cout << left << setw(20) << "Token" << setw(30) << "Lexema" << "Linha"
+           << endl;
+      cout << string(60, '-') << endl;
 
-    // Continua analisando até encontrar o fim da entrada para exibir a tabela
-    Token token = lexScanner.nextToken();
-    while (token.type != TokenType::T_EOF) {
-      // Exibe os dados formatados em colunas
-      cout << left << setw(20) << tokenTypeToString(token.type) << setw(30)
-           << token.lexeme << token.line << endl;
+      // Continua analisando até encontrar o fim da entrada para exibir a tabela
+      Token token = lexScanner.nextToken();
+      while (token.type != TokenType::T_EOF) {
+        // Exibe os dados formatados em colunas
+        cout << left << setw(20) << tokenTypeToString(token.type) << setw(30)
+             << token.lexeme << token.line << endl;
 
-      // Busca o próximo token
-      token = lexScanner.nextToken();
+        // Busca o próximo token
+        token = lexScanner.nextToken();
+      }
+
+      cout << string(60, '-') << endl;
+      cout << "Fim da analise lexica." << endl;
     }
 
-    cout << string(60, '-') << endl;
-    cout << "Fim da analise lexica." << endl;
-
-#ifndef SCANNER_ONLY
-    if (!isScannerOnly) {
+#ifndef LEXICO_ONLY
+    if (!isLexicoOnly) {
       // Cria um scanner separado para o parser
       Scanner parserScanner(code);
       Parser parser(parserScanner);
       auto ast = parser.parseProgram();
 
-      cout << endl << string(60, '-') << endl;
-      cout << "Analise sintatica concluida com sucesso!" << endl;
-      cout << "Arvore Sintatica Abstrata (JSON):" << endl;
       cout << ast->toJson() << endl;
     }
 #endif

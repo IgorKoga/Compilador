@@ -1,4 +1,4 @@
-﻿# Analisador Léxico e Sintático - Compiladores
+# Analisador Léxico e Sintático - Compiladores
 
 Este projeto é um compilador acadêmico (contendo Analisador Léxico e Sintático) desenvolvido para a disciplina de Compiladores. Ele foi evoluído de um protótipo simples para uma ferramenta modular capaz de processar arquivos de código da linguagem **Rust** e gerar uma Árvore Sintática Abstrata (AST) no formato JSON.
 
@@ -47,24 +47,26 @@ A exibição final constrói a árvore do código inteiro e exporta automaticame
 
 ### 💻 Como Compilar e Rodar
 
-Você pode compilar todos os arquivos juntos. O programa detecta se o executável gerado contém a palavra `scanner` no nome e, se contiver, oculta a árvore JSON automaticamente:
+Você pode compilar os mesmos arquivos de código-fonte (`main.cpp`, `lexico.cpp` e `parser.cpp`) gerando executáveis com nomes diferentes para obter comportamentos distintos. O programa analisa o nome do executável em tempo de execução:
 
-#### 1. Para gerar o `compiler.exe` (Exibe Tabela de Tokens + JSON):
+#### 1. Para gerar o `sintatico.exe` (Exibe APENAS o JSON da AST):
+Ao detectar `"lexico"` ausente no nome do executável, o programa assume o modo sintático completo e exibe **somente** o JSON da AST na saída.
 ```bash
-g++ main.cpp lexico.cpp parser.cpp -o compiler.exe
+g++ main.cpp lexico.cpp parser.cpp -o sintatico.exe
 ```
 **Para rodar:**
 ```bash
-./compiler.exe
+./sintatico.exe
 ```
 
-#### 2. Para gerar o `scanner.exe` (Exibe APENAS a Tabela de Tokens):
+#### 2. Para gerar o `lexico.exe` (Exibe APENAS a Tabela de Tokens):
+Ao detectar `"lexico"` no nome do executável, o programa assume o modo apenas léxico e exibe **somente** a tabela de tokens.
 ```bash
-g++ main.cpp lexico.cpp parser.cpp -o scanner.exe
+g++ main.cpp lexico.cpp parser.cpp -o lexico.exe
 ```
 **Para rodar:**
 ```bash
-./scanner.exe
+./lexico.exe
 ```
 
 *Nota: O programa buscará os arquivos dentro da pasta local `codigoRust/`. Tente rodar os arquivos de teste como o `soma.rs`.*
