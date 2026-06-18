@@ -49,4 +49,36 @@ fn main() {
             std::process::exit(1);
         }
     };
+
+    //cria o scanner para analise lexica
+    let mut lex_scanner = Scanner::new(&code);
+
+    if is_lexico_only || run_both{
+        if run_both {
+            println!("\n============================================================");
+            println!("                  1. FASE LEXICA (TOKENS)                   ");
+            println!("============================================================");
+        } else{
+            println!();
+        }
+
+        //cabeçalho da tabela
+        println!("{}", "-".repeat(60));
+        println!("{:<20} {:<30} {}", "Token", "Lexema", "Linha");
+        println!("{}", "-".repeat(60));
+
+        //continua analise até o fim da entrada
+        let mut token = lex_scanner.next_token();
+        while token.token_type != TokenType::T_EOF {
+            println!(
+                "{:<20} {:<30} {}",
+                token_type_to_string(token.token_type.clone()),
+                token.lexeme,
+                token.line
+            );
+            token = lex_scanner.next_token();
+        }
+        println!("{}", "-".repeat(60));
+        println!("Fim da analise lexica.");
+    }
 }
