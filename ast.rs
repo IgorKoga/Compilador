@@ -88,3 +88,99 @@ pub enum Statement {
         body: Box<Statement>,
     },
 }
+
+// Métodos das Instruções
+impl Statement {
+    pub fn to_json(&self) -> String {
+        match self {
+            Statement::LetDecl { id, is_mut, initializer } => {
+                let init_json = initializer.as_ref().map_or("null".to_string(), |expr| expr.to_json());
+                format!(
+                    r#"{{"type": "LetDecl", "id": "{}", "isMut": {}, "init": {}}}"#,
+                    id, is_mut, init_json
+                )
+            }
+            Statement::Assignment { id, expr } => {
+                format!(r#"{{"type": "Assignment", "id": "{}", "expr": {}}}"#, id, expr.to_json())
+            }
+            Statement::Println { args } => {
+                let args_json: Vec<String> = args.iter().map(|arg| arg.to_json()).collect();
+                format!(r#"{{"type": "Println", "args": [{}]}}"#, args_json.join(", "))
+            }
+            Statement::Block { statements } => {
+                let stmts_json: Vec<String> = statements.iter().map(|s| s.to_json()).collect();
+                format!(r#"{{"type": "Block", "statements": [{}]}}"#, stmts_json.join(", "))
+            }
+            Statement::If { condition, then_branch, else_branch } => {
+                let else_json = else_branch.as_ref().map_or("null".to_string(), |b| b.to_json());
+                format!(
+                    r#"{{"type": "IfStmt", "condition": {}, "thenBranch": {}, "elseBranch": {}}}"#,
+                    condition.to_json(), then_branch.to_json(), else_json
+                )
+            }
+            Statement::While { condition, body } => {
+                format!(
+                    r#"{{"type": "WhileStmt", "condition": {}, "body": {}}}"#,
+                    condition.to_json(), body.to_json()
+                )
+            }
+            Statement::FnDecl { name, body } => {
+                format!(
+                    r#"{{"type": "FnDecl", "name": "{}", "body": {}}}"#,
+                    name, body.to_json()
+                )
+            }
+        }
+    }
+
+    pub fn print(&self, indent: usize) {
+        let spaces = " ".repeat(indent);
+        match self {
+            Statement::LetDecl { id, is_mut, initializer } => {
+                let mut_str = if *is_mut { " (mut)" } else { "" };
+                println!("{}LetDeclStmt: {}{}", spaces, id, mut_str);
+                if let Some(init) = initializer {
+                    init.print(indent + 2);
+                }
+            }
+            Statement::Assignment { id, expr } => {
+                println!("{}AssignmentStmt: {}", spaces, id);
+                expr.print(indent + 2);
+            }
+            Statement::Println { args } => {
+                println!("{}PrintlnStmt", spaces);
+                for arg in args {
+                    arg.print(indent + 2);
+                }
+            }
+            Statement::Block { statements } => {
+                println!("{}BlockStmt", spaces);
+                for stmt in statements {
+                    stmt.print(indent + 2);
+                }
+            }
+            Statement::If { condition, then_branch, else_branch } => {
+                println!("{}IfStmt", spaces);
+                println!("{}  Condition:", spaces);
+                condition.print(indent + 4);
+                println!("{}  ThenBranch:", spaces);
+                then_branch.print(indent + 4);
+                if let Some(else_b) = else_branch {
+                    println!("{}  ElseBranch:", spaces);
+                    else_b.print(indent + 4);
+                }
+            }
+            Statement::While { condition, body } => {
+                println!("{}WhileStmt", spaces);
+                println!("{}  Condition:", spaces);
+                condition.print(indent + 4);
+                println!("{}  Body:", spaces);
+                body.print(indent + 4);
+            }
+            Statement::FnDecl { name, body } => {
+                println!("{}FnDeclStmt: {}", spaces, name);
+                body.print(indent + 2);
+            }
+        }
+    }
+}
