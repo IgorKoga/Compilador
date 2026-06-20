@@ -11,3 +11,17 @@ pub fn escape_json(s: &str) -> String {
     }
     result 
 }
+
+//Lista de opções de Expressões
+pub enum Expr {
+    Number(String),       
+    Float(String),        
+    String(String),       
+    Identifier(String),   
+    
+    Binary {
+        left: Box<Expr>, 
+        op: String,       
+        right: Box<Expr>, 
+    },
+}
