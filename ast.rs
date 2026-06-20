@@ -184,3 +184,31 @@ impl Statement {
         }
     }
 }
+
+// Nó Raiz (Program)
+pub struct Program {
+    pub statements: Vec<Statement>,
+}
+
+impl Program {
+    pub fn new() -> Self {
+        Program { statements: Vec::new() }
+    }
+
+    pub fn add_statement(&mut self, stmt: Statement) {
+        self.statements.push(stmt);
+    }
+
+    pub fn to_json(&self) -> String {
+        let stmts_json: Vec<String> = self.statements.iter().map(|s| format!("    {}", s.to_json())).collect();
+        format!("{{\n  \"type\": \"Program\",\n  \"body\": [\n{}\n  ]\n}}", stmts_json.join(",\n"))
+    }
+
+    pub fn print(&self, indent: usize) {
+        let spaces = " ".repeat(indent);
+        println!("{}Program", spaces);
+        for stmt in &self.statements {
+            stmt.print(indent + 2);
+        }
+    }
+}
