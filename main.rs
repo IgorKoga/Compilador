@@ -99,9 +99,8 @@ fn main() {
             let mut parser_scanner = Scanner::new(&code);
             let mut parser = Parser::new(&mut parser_scanner);
 
-            // Chama a análise sintática diretamente
+            // Tratamento de erro do parse
             let ast = parser.parseProgram();
-
             // Exibe a representação da árvore sintatica (AST) no terminal
             println!("\n--- Representacao da Arvore Sintatica (AST) ---");
             ast.print(); // Exibe a árvore de forma hierárquica
@@ -139,12 +138,12 @@ fn main() {
                     );
                 }
             }
-
-            if run_both {
-                println!("============================================================");
-            }
-            println!("Fim da analise sintatica.");
         }
+
+        if run_both {
+            println!("============================================================");
+        }
+        println!("Fim da analise sintatica.");
     }
 
     println!("\nPressione Enter para fechar a janela...");
