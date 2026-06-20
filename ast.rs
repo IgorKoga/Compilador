@@ -56,3 +56,35 @@ impl Expr {
         }
     }
 }
+
+//Estrutura das Instruções
+pub enum Statement {
+    LetDecl {
+        id: String,
+        is_mut: bool,
+        initializer: Option<Box<Expr>>,
+    },
+    Assignment {
+        id: String,
+        expr: Box<Expr>,
+    },
+    Println {
+        args: Vec<Expr>,
+    },
+    Block {
+        statements: Vec<Statement>,
+    },
+    If {
+        condition: Box<Expr>,
+        then_branch: Box<Statement>,
+        else_branch: Option<Box<Statement>>,
+    },
+    While {
+        condition: Box<Expr>,
+        body: Box<Statement>,
+    },
+    FnDecl {
+        name: String,
+        body: Box<Statement>,
+    },
+}
