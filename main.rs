@@ -96,52 +96,47 @@ fn main() {
             }
 
             // Cria um scanner separado para o parser
-            let parser_scanner = Scanner::new(&code);
-            let mut parser = Parser::new(parser_scanner);
+            let mut parser_scanner = Scanner::new(&code);
+            let mut parser = Parser::new(&mut parser_scanner);
 
-            // Tratamento de erro do parse
-            match parser.parse_program() {
-                Ok(ast) => {
-                    // Exibe a representação da árvore sintatica (AST) no terminal
-                    println!("\n--- Representacao da Arvore Sintatica (AST) ---");
-                    ast.print(); // Exibe a árvore de forma hierárquica
-                    println!("-----------------------------------------------");
+            // Chama a análise sintática diretamente
+            let ast = parser.parseProgram();
 
-                    let path = Path::new(&full_path);
-                    let base_name = path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or(file_name);
+            // Exibe a representação da árvore sintatica (AST) no terminal
+            println!("\n--- Representacao da Arvore Sintatica (AST) ---");
+            ast.print(); // Exibe a árvore de forma hierárquica
+            println!("-----------------------------------------------");
 
-                    // remove a extensão original .rs do arquivo e adiciona a .json
-                    let json_file_name = if let Some(last_dot) = base_name.rfind('.') {
-                        format!("{}.json", &base_name[..last_dot])
-                    } else {
-                        format!("{}.json", base_name)
-                    };
+            let path = Path::new(&full_path);
+            let base_name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or(file_name);
 
-                    let json_path = format!("json/{}", json_file_name);
+            // remove a extensão original .rs do arquivo e adiciona a .json
+            let json_file_name = if let Some(last_dot) = base_name.rfind('.') {
+                format!("{}.json", &base_name[..last_dot])
+            } else {
+                format!("{}.json", base_name)
+            };
 
-                    // Cria o diretorio para os arquivos json se ele não existir
-                    if let Some(parent) = Path::new(&json_path).parent() {
-                        let _ = fs::create_dir_all(parent);
-                    }
+            let json_path = format!("json/{}", json_file_name);
 
-                    // grava representação em json gerada
-                    match fs::write(&json_path, ast.to_json()) {
-                        Ok(_) => {
-                            println!("\n[Sucesso] Arquivo json salvo em: {}", json_path);
-                        }
-                        Err(e) => {
-                            eprintln!(
-                                "\n[Erro] Nao foi possivel criar arquivo JSON em: {}. Erro: {}",
-                                json_path, e
-                            );
-                        }
-                    }
+            // Cria o diretorio para os arquivos json se ele não existir
+            if let Some(parent) = Path::new(&json_path).parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+
+            // grava representação em json gerada
+            match fs::write(&json_path, ast.to_json()) {
+                Ok(_) => {
+                    println!("\n[Sucesso] Arquivo json salvo em: {}", json_path);
                 }
                 Err(e) => {
-                    eprintln!("{}", e);
+                    eprintln!(
+                        "\n[Erro] Nao foi possivel criar arquivo JSON em: {}. Erro: {}",
+                        json_path, e
+                    );
                 }
             }
 
