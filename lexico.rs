@@ -5,42 +5,66 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {
-    T_LET, T_MUT, T_INT, T_IF, T_ELSE, T_WHILE, T_PRINTLN, T_EXCL, T_FN, T_VIRG, // Palavras reservadas
-    T_ID, T_NUM, T_FLOAT, T_STRING, // Identificadores (nomes de variáveis), números e textos (strings)
-    T_ASSIGN, T_EQ, // Operadores de atribuição (=) e comparação de igualdade (==)
-    T_PLUS, T_MINUS, T_MULT, T_DIV, // Operadores aritméticos (+, -, *, /)
-    T_LT, T_GT,  // Operadores relacionais (<, >)
-    T_LPAREN, T_RPAREN, T_LBRACE, T_RBRACE, // Símbolos de agrupamento: parênteses e chaves
+    T_LET,
+    T_MUT,
+    T_INT,
+    T_IF,
+    T_ELSE,
+    T_WHILE,
+    T_PRINTLN,
+    T_EXCL,
+    T_FN,
+    T_VIRG, // Palavras reservadas
+    T_ID,
+    T_NUM,
+    T_FLOAT,
+    T_STRING, // Identificadores (nomes de variáveis), números e textos (strings)
+    T_ASSIGN,
+    T_EQ, // Operadores de atribuição (=) e comparação de igualdade (==)
+    T_PLUS,
+    T_MINUS,
+    T_MULT,
+    T_DIV, // Operadores aritméticos (+, -, *, /)
+    T_LT,
+    T_GT, // Operadores relacionais (<, >)
+    T_LPAREN,
+    T_RPAREN,
+    T_LBRACE,
+    T_RBRACE,    // Símbolos de agrupamento: parênteses e chaves
     T_SEMICOLON, // Delimitador de instrução (ponto e vírgula)
-    T_EOF, // Fim do arquivo/entrada (End Of File)
+    T_EOF,       // Fim do arquivo/entrada (End Of File)
 }
 
 // guarda o tipo, o texto exato (lexema) e a linha
 #[derive(Debug, Clone)]
 pub struct Token {
     pub r#type: TokenType, // O tipo de token
-    pub lexeme: String,    // O texto em si 
+    pub lexeme: String,    // O texto em si
     pub line: usize,       // A linha onde ele apareceu
 }
 
 impl Token {
     /// Função para criar um Token novo mais facil
     pub fn new(r#type: TokenType, lexeme: String, line: usize) -> Self {
-        Token { r#type, lexeme, line }
+        Token {
+            r#type,
+            lexeme,
+            line,
+        }
     }
 }
 
 // Estrutura principal, percorre o codigo caractere por caractere
 pub struct Scanner {
-    input: Vec<char>,                     // código fonte transformado em uma lista de caracteres
-    pos: usize,                           // Posição atual de leitura 
-    line: usize,                          // Linha atual do código
+    input: Vec<char>, // código fonte transformado em uma lista de caracteres
+    pos: usize,       // Posição atual de leitura
+    line: usize,      // Linha atual do código
     keywords: HashMap<String, TokenType>, // Dicionário para verificar se uma palavra é uma palavra reservada
 }
 
 impl Scanner {
     // Inicializa a maquina do scanner e cadastra as palavras reservadas
-    pub fn new(source: String) -> Self {
+    pub fn new(source: &str) -> Self {
         let mut keywords = HashMap::new();
         // Cadastrando as palavras que não pode usar como nome de variável
         keywords.insert("int".to_string(), TokenType::T_INT);
@@ -113,7 +137,10 @@ impl Scanner {
             }
         }
         // Se o código acabou e o comentário nunca fechou, dá erro:
-        panic!("Erro Lexico: Comentario multilinha nao fechado na linha {}", self.line);
+        panic!(
+            "Erro Lexico: Comentario multilinha nao fechado na linha {}",
+            self.line
+        );
     }
 
     // Fica lendo até o número acabar
@@ -128,14 +155,21 @@ impl Scanner {
             if self.peek() == '.' {
                 if is_float {
                     //se ja foi achado um ponto antes da erro:
-                    panic!("Erro Lexico: Multiplos pontos decimais na linha {}", self.line);
+                    panic!(
+                        "Erro Lexico: Multiplos pontos decimais na linha {}",
+                        self.line
+                    );
                 }
                 is_float = true; // Marca que virou um número flutuante
             }
             buffer.push(self.next());
         }
 
-        let token_type = if is_float { TokenType::T_FLOAT } else { TokenType::T_NUM };
+        let token_type = if is_float {
+            TokenType::T_FLOAT
+        } else {
+            TokenType::T_NUM
+        };
         Token::new(token_type, buffer, self.line)
     }
 
@@ -144,7 +178,7 @@ impl Scanner {
         let mut buffer = String::new();
         buffer.push(start);
 
-        // Nomes podem conter letras, números e underline 
+        // Nomes podem conter letras, números e underline
         while self.peek().is_alphanumeric() || self.peek() == '_' {
             buffer.push(self.next());
         }
@@ -179,7 +213,7 @@ impl Scanner {
     }
 
     // Processa a leitura e devolve o proximo Token valido ou acusa erro lexico
-    pub fn nextToken(&mut self) -> Token {
+    pub fn next_token(&mut self) -> Token {
         self.skip_whitespace(); // Limpa os espaços mortos antes de começar a procurar
 
         // Se chegou no fim, devolve o token de Fim de Arquivo (EOF)
@@ -216,11 +250,11 @@ impl Scanner {
                 if self.peek() == '/' {
                     self.next();
                     self.skip_comment(); // É comentário de linha, pula tudo e recomeça a busca
-                    self.nextToken()
+                    self.next_token()
                 } else if self.peek() == '*' {
                     self.next();
                     self.skip_multiline_comment(); // É comentário multilinhas, pula o bloco e recomeça a busca
-                    self.nextToken()
+                    self.next_token()
                 } else {
                     Token::new(TokenType::T_DIV, "/".to_string(), self.line) // É só divisão mesmo
                 }
@@ -241,14 +275,17 @@ impl Scanner {
             '{' => Token::new(TokenType::T_LBRACE, "{".to_string(), self.line),
             '}' => Token::new(TokenType::T_RBRACE, "}".to_string(), self.line),
             ';' => Token::new(TokenType::T_SEMICOLON, ";".to_string(), self.line),
-            _ => panic!("Erro Lexico: caractere invalido '{}' na linha {}", c, self.line), // Símbolo não existe na linguagem
+            _ => panic!(
+                "Erro Lexico: caractere invalido '{}' na linha {}",
+                c, self.line
+            ), // Símbolo não existe na linguagem
         }
     }
 }
 
 // devolve o nome dele como uma String de texto.
 // Serve pra quando a gente for mandar imprimir "T_LET" certinho na tela.
-pub fn tokenTypeToString(r#type: TokenType) -> String {
+pub fn token_type_to_string(r#type: TokenType) -> String {
     match r#type {
         TokenType::T_LET => "T_LET".to_string(),
         TokenType::T_MUT => "T_MUT".to_string(),
