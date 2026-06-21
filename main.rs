@@ -16,7 +16,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let exec_name = args.get(0).cloned().unwrap_or_default();
 
-    let mut is_lexico_only = exec_name.contains("lexico");
+    let is_lexico_only = exec_name.contains("lexico");
     let is_sintatico_only = exec_name.contains("sintatico");
 
     #[cfg(feature = "lexico_only")]
@@ -72,10 +72,10 @@ fn main() {
 
         // continua analise até o fim da entrada
         let mut token = lex_scanner.next_token();
-        while token.token_type != TokenType::T_EOF {
+        while token.r#type != TokenType::T_EOF {
             println!(
                 "{:<20} {:<30} {}",
-                token_type_to_string(token.token_type.clone()),
+                token_type_to_string(token.r#type.clone()),
                 token.lexeme,
                 token.line
             );
