@@ -103,7 +103,7 @@ fn main() {
             let ast = parser.parseProgram();
             // Exibe a representação da árvore sintatica (AST) no terminal
             println!("\n--- Representacao da Arvore Sintatica (AST) ---");
-            ast.print(); // Exibe a árvore de forma hierárquica
+            ast.print(0); // Exibe a árvore de forma hierárquica
             println!("-----------------------------------------------");
 
             let path = Path::new(&full_path);

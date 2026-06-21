@@ -1,14 +1,9 @@
 #![allow(non_snake_case)] // Permite que variáveis e funções tenham nomes não-padrão (snake_case)
 #![allow(dead_code)] // Permite que funções e variáveis não sejam usadas
 
-// Importações presumidas dos módulos do analisador léxico e da AST.
-// Ajustar esses caminhos caso a estrutura de módulos do projeto mude.
+// Importações dos módulos do analisador léxico e da AST
+use super::ast::{Expr, Program, Statement};
 use super::lexico::{Scanner, Token, TokenType};
-use super::ast::{
-    Expr, Statement, Program, BlockStmt, LetDeclStmt, AssignmentStmt,
-    PrintlnStmt, IfStmt, WhileStmt, FnDeclStmt, BinaryExpr, NumberExpr,
-    FloatExpr, StringExpr, IdentifierExpr,
-};
 
 /// Estrutura do Analisador Sintático (Parser)
 pub struct Parser<'a> {
@@ -30,7 +25,7 @@ impl<'a> Parser<'a> {
 
     // Avança para o próximo token retornado pelo scanner
     fn advance(&mut self) {
-        self.currentToken = self.scanner.nextToken();
+        self.currentToken = self.scanner.next_token();
     }
 
     // Verifica se o token atual é do tipo esperado e avança se for
@@ -55,7 +50,10 @@ impl<'a> Parser<'a> {
 
     // Retorna uma mensagem formatada de erro sintático com o número da linha correspondente
     fn error(&self, message: &str) -> String {
-        format!("Erro Sintatico na linha {}: {}", self.currentToken.line, message)
+        format!(
+            "Erro Sintatico na linha {}: {}",
+            self.currentToken.line, message
+        )
     }
 
     // Sincroniza o parser após um erro, avançando os tokens até encontrar um ponto seguro (sincronização por Panic Mode)
@@ -84,7 +82,7 @@ impl<'a> Parser<'a> {
         while self.currentToken.r#type != TokenType::T_EOF {
             match self.parseStatement() {
                 Ok(statement) => {
-                    program.addStatement(statement);
+                    program.add_statement(*statement);
                 }
                 Err(e) => {
                     eprintln!("{}", e);
@@ -96,14 +94,16 @@ impl<'a> Parser<'a> {
     }
 
     // Analisa um bloco de código delimitado por chaves '{}'
-    fn parseBlock(&mut self) -> Result<Box<BlockStmt>, String> {
+    fn parseBlock(&mut self) -> Result<Box<Statement>, String> {
         self.consume(TokenType::T_LBRACE, "Esperado '{' no inicio do bloco.")?;
-        let mut block = Box::new(BlockStmt::new());
-        while self.currentToken.r#type != TokenType::T_RBRACE && self.currentToken.r#type != TokenType::T_EOF {
-            block.addStatement(self.parseStatement()?);
+        let mut statements = Vec::new();
+        while self.currentToken.r#type != TokenType::T_RBRACE
+            && self.currentToken.r#type != TokenType::T_EOF
+        {
+            statements.push(*self.parseStatement()?);
         }
         self.consume(TokenType::T_RBRACE, "Esperado '}' no final do bloco.")?;
-        Ok(block)
+        Ok(Box::new(Statement::Block { statements }))
     }
 
     // Analisa uma instrução identificando a palavra-chave inicial
@@ -144,21 +144,31 @@ impl<'a> Parser<'a> {
         if self.r#match(TokenType::T_ASSIGN) {
             initExpr = Some(self.parseExpression()?);
         }
-        self.consume(TokenType::T_SEMICOLON, "Esperado ';' apos declaracao de variavel.")?;
+        self.consume(
+            TokenType::T_SEMICOLON,
+            "Esperado ';' apos declaracao de variavel.",
+        )?;
 
-        Ok(Box::new(LetDeclStmt::new(varName, isMut, initExpr)))
+        Ok(Box::new(Statement::LetDecl {
+            id: varName,
+            is_mut: isMut,
+            initializer: initExpr,
+        }))
     }
 
     // Analisa uma atribuição de valor a uma variável existente
     fn parseAssignment(&mut self) -> Result<Box<Statement>, String> {
         let varName = self.currentToken.lexeme.clone();
-        self.consume(TokenType::T_ID, "Esperado identificador para atribuicao ou instrucao valida.")?;
+        self.consume(
+            TokenType::T_ID,
+            "Esperado identificador para atribuicao ou instrucao valida.",
+        )?;
 
         self.consume(TokenType::T_ASSIGN, "Esperado '=' na atribuicao.")?;
         let expr = self.parseExpression()?;
         self.consume(TokenType::T_SEMICOLON, "Esperado ';' apos atribuicao.")?;
 
-        Ok(Box::new(AssignmentStmt::new(varName, expr)))
+        Ok(Box::new(Statement::Assignment { id: varName, expr }))
     }
 
     // Analisa uma instrução de impressão 'println!'
@@ -169,16 +179,22 @@ impl<'a> Parser<'a> {
 
         let mut args = Vec::new();
         if self.currentToken.r#type != TokenType::T_RPAREN {
-            args.push(self.parseExpression()?);
+            args.push(*self.parseExpression()?);
             while self.r#match(TokenType::T_VIRG) {
-                args.push(self.parseExpression()?);
+                args.push(*self.parseExpression()?);
             }
         }
 
-        self.consume(TokenType::T_RPAREN, "Esperado ')' apos argumentos do println.")?;
-        self.consume(TokenType::T_SEMICOLON, "Esperado ';' no final da instrucao.")?;
+        self.consume(
+            TokenType::T_RPAREN,
+            "Esperado ')' apos argumentos do println.",
+        )?;
+        self.consume(
+            TokenType::T_SEMICOLON,
+            "Esperado ';' no final da instrucao.",
+        )?;
 
-        Ok(Box::new(PrintlnStmt::new(args)))
+        Ok(Box::new(Statement::Println { args }))
     }
 
     // Analisa uma instrução condicional 'if/else'
@@ -193,7 +209,11 @@ impl<'a> Parser<'a> {
             elseBranch = Some(self.parseBlock()?);
         }
 
-        Ok(Box::new(IfStmt::new(condition, thenBranch, elseBranch)))
+        Ok(Box::new(Statement::If {
+            condition,
+            then_branch: thenBranch,
+            else_branch: elseBranch,
+        }))
     }
 
     // Analisa uma instrução de laço 'while'
@@ -203,7 +223,7 @@ impl<'a> Parser<'a> {
         let condition = self.parseExpression()?;
         let body = self.parseBlock()?;
 
-        Ok(Box::new(WhileStmt::new(condition, body)))
+        Ok(Box::new(Statement::While { condition, body }))
     }
 
     // Analisa uma declaração de função 'fn'
@@ -214,11 +234,14 @@ impl<'a> Parser<'a> {
         self.consume(TokenType::T_ID, "Esperado nome da funcao.")?;
 
         self.consume(TokenType::T_LPAREN, "Esperado '(' apos nome da funcao.")?;
-        self.consume(TokenType::T_RPAREN, "Esperado ')' apos argumentos da funcao.")?;
+        self.consume(
+            TokenType::T_RPAREN,
+            "Esperado ')' apos argumentos da funcao.",
+        )?;
 
         let body = self.parseBlock()?;
 
-        Ok(Box::new(FnDeclStmt::new(name, body)))
+        Ok(Box::new(Statement::FnDecl { name, body }))
     }
 
     // Analisa uma expressão genérica (que inicia resolvendo comparações)
@@ -237,7 +260,11 @@ impl<'a> Parser<'a> {
             let op = self.currentToken.lexeme.clone();
             self.advance();
             let right = self.parseTerm()?;
-            expr = Box::new(BinaryExpr::new(expr, op, right));
+            expr = Box::new(Expr::Binary {
+                left: expr,
+                op,
+                right,
+            });
         }
 
         Ok(expr)
@@ -253,7 +280,11 @@ impl<'a> Parser<'a> {
             let op = self.currentToken.lexeme.clone();
             self.advance();
             let right = self.parseFactor()?;
-            expr = Box::new(BinaryExpr::new(expr, op, right));
+            expr = Box::new(Expr::Binary {
+                left: expr,
+                op,
+                right,
+            });
         }
 
         Ok(expr)
@@ -262,22 +293,22 @@ impl<'a> Parser<'a> {
     // Analisa fatores de expressão (números inteiros/decimais, strings, identificadores e expressões entre parênteses)
     fn parseFactor(&mut self) -> Result<Box<Expr>, String> {
         if self.currentToken.r#type == TokenType::T_NUM {
-            let expr = Box::new(NumberExpr::new(self.currentToken.lexeme.clone()));
+            let expr = Box::new(Expr::Number(self.currentToken.lexeme.clone()));
             self.advance();
             return Ok(expr);
         }
         if self.currentToken.r#type == TokenType::T_FLOAT {
-            let expr = Box::new(FloatExpr::new(self.currentToken.lexeme.clone()));
+            let expr = Box::new(Expr::Float(self.currentToken.lexeme.clone()));
             self.advance();
             return Ok(expr);
         }
         if self.currentToken.r#type == TokenType::T_STRING {
-            let expr = Box::new(StringExpr::new(self.currentToken.lexeme.clone()));
+            let expr = Box::new(Expr::String(self.currentToken.lexeme.clone()));
             self.advance();
             return Ok(expr);
         }
         if self.currentToken.r#type == TokenType::T_ID {
-            let expr = Box::new(IdentifierExpr::new(self.currentToken.lexeme.clone()));
+            let expr = Box::new(Expr::Identifier(self.currentToken.lexeme.clone()));
             self.advance();
             return Ok(expr);
         }

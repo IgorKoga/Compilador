@@ -31,7 +31,7 @@ impl Token {
 }
 
 // Estrutura principal, percorre o codigo caractere por caractere
-pub struct Scanner {
+pub stru;   ct Scanner {
     input: Vec<char>,                     // código fonte transformado em uma lista de caracteres
     pos: usize,                           // Posição atual de leitura 
     line: usize,                          // Linha atual do código
@@ -40,7 +40,7 @@ pub struct Scanner {
 
 impl Scanner {
     // Inicializa a maquina do scanner e cadastra as palavras reservadas
-    pub fn new(source: String) -> Self {
+    pub fn new(source: &str) -> Self {
         let mut keywords = HashMap::new();
         // Cadastrando as palavras que não pode usar como nome de variável
         keywords.insert("int".to_string(), TokenType::T_INT);
@@ -179,7 +179,7 @@ impl Scanner {
     }
 
     // Processa a leitura e devolve o proximo Token valido ou acusa erro lexico
-    pub fn nextToken(&mut self) -> Token {
+    pub fn next_token(&mut self) -> Token {
         self.skip_whitespace(); // Limpa os espaços mortos antes de começar a procurar
 
         // Se chegou no fim, devolve o token de Fim de Arquivo (EOF)
@@ -216,11 +216,11 @@ impl Scanner {
                 if self.peek() == '/' {
                     self.next();
                     self.skip_comment(); // É comentário de linha, pula tudo e recomeça a busca
-                    self.nextToken()
+                    self.next_token()
                 } else if self.peek() == '*' {
                     self.next();
                     self.skip_multiline_comment(); // É comentário multilinhas, pula o bloco e recomeça a busca
-                    self.nextToken()
+                    self.next_token()
                 } else {
                     Token::new(TokenType::T_DIV, "/".to_string(), self.line) // É só divisão mesmo
                 }
@@ -248,7 +248,7 @@ impl Scanner {
 
 // devolve o nome dele como uma String de texto.
 // Serve pra quando a gente for mandar imprimir "T_LET" certinho na tela.
-pub fn tokenTypeToString(r#type: TokenType) -> String {
+pub fn token_type_to_string(r#type: TokenType) -> String {
     match r#type {
         TokenType::T_LET => "T_LET".to_string(),
         TokenType::T_MUT => "T_MUT".to_string(),
