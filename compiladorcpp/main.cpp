@@ -5,7 +5,8 @@
 
 #ifndef LEXICO_ONLY
 #include "ast.hpp"
-#include "parser.hpp"
+#include "sintatico.hpp"
+#include "semantico.hpp"
 #endif
 
 #include <fstream> // lê arquivos
@@ -102,7 +103,7 @@ int main(int argc, char *argv[]) {
       // Cria um scanner separado para o parser
       Scanner parserScanner(code);
       Parser parser(parserScanner);
-      auto ast = parser.parseProgram();
+      auto ast = sintatico.parseProgram();
 
       // Exibe a representação estruturada da árvore sintática (AST) no terminal
       cout << "\n--- Representacao da Arvore Sintatica (AST) ---" << endl;
@@ -143,6 +144,38 @@ int main(int argc, char *argv[]) {
              << endl;
       }
       cout << "Fim da analise sintatica." << endl;
+
+      if (runBoth) {
+        cout << "\n============================================================"
+             << endl;
+        cout << "                  3. FASE SEMANTICA                         "
+             << endl;
+        cout << "============================================================"
+             << endl;
+      }
+
+      // Executa a analise
+      SemanticAnalyzer semanticAnalyzer;
+      semanticAnalyzer.analyze(ast.get());
+      semanticAnalyzer.report();
+
+      // Gravar o JSON da Tabela de Simbolos gerado pela analise semantica
+      string symJsonPath = "json/symtable_" + jsonFileName;
+      ofstream symJsonFile(symJsonPath);
+      if (symJsonFile.is_open()) {
+        symJsonFile << semanticAnalyzer.getSymbolTableJson();
+        symJsonFile.close();
+        cout << "\n[Sucesso] Arquivo Tabela de Simbolos JSON salvo em: " << symJsonPath << endl;
+      } else {
+        cerr << "\n[Erro] Nao foi possivel criar o arquivo JSON da Tabela de Simbolos em: "
+             << symJsonPath << endl;
+      }
+
+      if (runBoth) {
+        cout << "============================================================"
+             << endl;
+      }
+      cout << "Fim da analise semantica." << endl;
     }
 #endif
 

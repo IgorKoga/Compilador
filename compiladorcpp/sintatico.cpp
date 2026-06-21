@@ -1,4 +1,4 @@
-#include "parser.hpp"
+#include "sintatico.hpp"
 #include <iostream>
 
 //Inicializa o parser
