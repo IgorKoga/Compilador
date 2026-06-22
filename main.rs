@@ -6,6 +6,7 @@ use std::path::Path;
 mod ast;
 mod lexico;
 mod sintatico;
+mod semantico;
 
 use lexico::{token_type_to_string, Scanner, TokenType};
 use sintatico::Parser;
@@ -135,6 +136,30 @@ fn main() {
                     eprintln!(
                         "\n[Erro] Nao foi possivel criar arquivo JSON em: {}. Erro: {}",
                         json_path, e
+                    );
+                }
+            }
+
+            // --- FASE SEMANTICA ---
+            let mut semantic_analyzer = semantico::SemanticAnalyzer::new();
+            semantic_analyzer.analyze(&ast);
+            semantic_analyzer.report();
+
+            // grava representacao em json da tabela de simbolos
+            let sym_json_file_name = if let Some(last_dot) = base_name.rfind('.') {
+                format!("{}_symbols.json", &base_name[..last_dot])
+            } else {
+                format!("{}_symbols.json", base_name)
+            };
+            let sym_json_path = format!("json/{}", sym_json_file_name);
+            match fs::write(&sym_json_path, semantic_analyzer.getSymbolTableJson()) {
+                Ok(_) => {
+                    println!("[Sucesso] Tabela de simbolos salva em: {}", sym_json_path);
+                }
+                Err(e) => {
+                    eprintln!(
+                        "[Erro] Nao foi possivel criar arquivo JSON da tabela de simbolos em: {}. Erro: {}",
+                        sym_json_path, e
                     );
                 }
             }
