@@ -1,6 +1,6 @@
-# Analisador Léxico e Sintático - Compiladores
+# Analisador Léxico, Sintático e Semântico - Compiladores
 
-Este projeto é um compilador acadêmico (contendo Analisador Léxico e Sintático) desenvolvido para a disciplina de Compiladores. Ele foi evoluído de um protótipo simples para uma ferramenta modular capaz de processar arquivos de código da linguagem **Rust** e gerar uma Árvore Sintática Abstrata (AST) no formato JSON.
+Este projeto é um compilador acadêmico (contendo as fases de Análise Léxica, Sintática e Semântica) desenvolvido em **Rust** para a disciplina de Compiladores. A ferramenta é capaz de processar arquivos de código da linguagem **Rust** (simplificada), gerar uma Árvore Sintática Abstrata (AST) em formato JSON, realizar verificações semânticas estritas e exportar a Tabela de Símbolos gerada também em JSON.
 
 ---
 
@@ -8,67 +8,88 @@ Este projeto é um compilador acadêmico (contendo Analisador Léxico e Sintáti
 De forma simples, o analisador léxico é a "primeira fase" de um compilador. Sua função é ler o código-fonte (que é apenas uma sequência de caracteres) e agrupar esses caracteres em unidades significativas chamadas **Tokens**. 
 
 Por exemplo: ao ler `let x = 10;`, o scanner identifica:
-- `let` -> Palavra Reservada
-- `x` -> Identificador
-- `=` -> Operador de Atribuição
-- `10` -> Número
-- `;` -> Delimitador
+- `let` -> Palavra Reservada (`T_LET`)
+- `x` -> Identificador (`T_ID`)
+- `=` -> Operador de Atribuição (`T_ASSIGN`)
+- `10` -> Número Inteiro (`T_NUM`)
+- `;` -> Delimitador (`T_SEMICOLON`)
 
 ---
 
 ### 🌳 O que é o Analisador Sintático (Parser) e a AST?
-O analisador sintático é a segunda fase. Ele recebe os tokens gerados pelo Léxico e verifica se a ordem dessas palavras faz sentido perante a gramática matemática da linguagem, agrupando as instruções numa **Árvore Sintática Abstrata (AST)**.
-Por exemplo, ele descobre que um sinal de `+` possui uma variável `a` na esquerda e `b` na direita. 
+O analisador sintático é a segunda fase. Ele recebe os tokens gerados pelo Léxico e verifica se a ordem dessas palavras faz sentido perante a gramática matemática da linguagem, construindo uma **Árvore Sintática Abstrata (AST)**.
+Por exemplo, ele estrutura a expressão `a + b` em um nó binário (`BinaryExpr`) que possui a variável `a` à esquerda e `b` à direita.
 
 ---
 
-### 🚀 Mudanças e Evoluções Realizadas
+### 🧠 O que é o Analisador Semântico?
+O analisador semântico é a terceira fase. Ele valida a lógica do programa que não pode ser capturada pela sintaxe estrutural. Ele cria e gerencia uma **Tabela de Símbolos** com escopos aninhados e realiza validações como compatibilidade de tipos, uso de variáveis não declaradas, prevenção de reatribuição de constantes, detecção de divisão por zero e emissão de alertas (warnings) sobre variáveis não utilizadas ou não inicializadas.
 
-#### 1. Modularização do Código
-O projeto foi dividido em arquivos separados para facilitar a manutenção e organização:
-- `lexico.hpp` e `lexico.cpp`: Implementação de toda a lógica de reconhecimento de caracteres e geração de Tokens.
-- `ast.hpp`: Declarações das classes e da hierarquia de nós da Árvore Sintática Abstrata.
-- `parser.hpp` e `parser.cpp`: Lógica do Parser Descendente Recursivo e tratamento de erros (Panic Mode).
-- `main.cpp`: Ponto de entrada que gerencia a leitura de arquivos, aciona o Scanner, o Parser e exibe os resultados.
+---
 
-#### 2. Leitura de Arquivos Externos
-O programa solicita ao usuário o nome de um arquivo (localizado na pasta `codigoRust/`) e processa o conteúdo real desse arquivo de forma dinâmica.
+### 🚀 Mudanças e Evoluções Realizadas (Nova Versão em Rust)
 
-#### 3. Suporte Expandido para Rust
-O sistema foi especializado para reconhecer padrões e a gramática da linguagem Rust, incluindo:
-- **Palavras-chave e Blocos**: Suporte a `let`, `let mut`, `fn main() { ... }`, condicionais (`if`/`else`) e laços (`while`).
-- **Símbolos e Expressões**: Reconhecimento e tratamento de precedência para matemática básica, além do operador de exclamação `!` (usado em macros como `println!`) e controle de múltiplos argumentos separados por vírgulas.
-- **Tipagem Automática**: Suporte estendido ao uso e reconhecimento de Inteiros, Floats (Números Decimais) e Strings (`"exemplo"`).
+#### 1. Migração e Modularização para Rust
+O compilador foi completamente implementado/reescrito em **Rust**, tornando o processamento de código extremamente robusto e seguro. O projeto é composto por:
+- [main.rs]: Ponto de entrada do compilador. Gerencia a leitura de arquivos, o fluxo das três fases de análise e a exportação dos relatórios/JSONs.
+- [lexico.rs]: Lógica de scanner/tokenização em Rust para o subconjunto da linguagem.
+- [sintatico.rs]: Parser descendente recursivo com tratamento de erros robusto via *Panic Mode* (sincronização por `;` ou palavras-chave).
+- [semantico.rs]: Analisador semântico que percorre a AST gerada, gerencia a pilha de escopos e valida as regras de semântica.
+- [ast.rs]: Definição das estruturas e enums que representam a AST e as instruções do programa, com métodos para impressão hierárquica e conversão para JSON.
 
-#### 4. Exportação JSON e Tratamento de Erros
-A exibição final constrói a árvore do código inteiro e exporta automaticamente no formato **JSON**, facilitando integrações visuais externas. Caso falte um ponto e vírgula ou caractere na sua sintaxe Rust, o *Panic Mode* informará o erro com a linha exata no console e continuará avaliando o restante do arquivo.
+#### 2. Implementação da Fase Semântica (Novidade)
+O compilador agora realiza verificações lógicas profundas:
+- **Tabela de Símbolos Multiescopo**: Suporte a escopos globais e locais delimitados por blocos `{ ... }`, blocos condicionais (`if`/`else`), laços (`while`) e declarações de funções (`fn`).
+- **Verificação de Escopo**: Detecção de **variáveis não declaradas** e de **declarações duplicadas** dentro de um mesmo escopo.
+- **Controle de Mutabilidade e Constantes**: Como no Rust real, variáveis são imutáveis por padrão. Se declaradas sem a palavra-chave `mut`, qualquer tentativa de reatribuição gera um erro semântico de atribuição a variável constante.
+- **Inferência e Verificação de Tipos**:
+  - Tipagem automática baseada em expressões (como `int`, `float`, `string`).
+  - Coerção segura de `int` para `float` em operações aritméticas binárias.
+  - Verificação de compatibilidade em atribuições e em expressões binárias comparativas (`<`, `>`, `==`) e aritméticas.
+- **Detecção de Divisão por Zero**: Análise estática que acusa erro ao tentar dividir por constantes numéricas literais de valor `0` ou `0.0`.
+- **Relatório de Avisos (Warnings)**:
+  - Alerta sobre **variáveis declaradas mas nunca utilizadas** ao final de cada escopo.
+  - Alerta sobre **variáveis utilizadas antes de receberem um valor inicial** (não inicializadas).
+
+#### 3. Exportação de Resultados Avançada
+Além do JSON da árvore sintática (AST), o compilador agora gera e exporta a **Tabela de Símbolos em JSON** (`<nome_do_arquivo>_symbols.json`) dentro do diretório `json/`, contendo o mapeamento de variáveis, escopos, tipos, mutabilidade e uso.
 
 ---
 
 ### 💻 Como Compilar e Rodar
 
-Você pode compilar os mesmos arquivos de código-fonte (`main.cpp`, `lexico.cpp` e `parser.cpp`) gerando executáveis com nomes diferentes para obter comportamentos distintos. O programa analisa o nome do executável em tempo de execução:
+O comportamento do programa é definido com base no nome do arquivo executável no momento da execução:
 
-#### 1. Para gerar o `sintatico.exe` (Exibe APENAS o JSON da AST):
-Ao detectar `"lexico"` ausente no nome do executável, o programa assume o modo sintático completo e exibe **somente** o JSON da AST na saída.
+#### 1. Compilação Geral (Modo Híbrido)
+Executa a Fase Léxica (exibe tabela de tokens), Fase Sintática (exibe árvore, exporta AST em JSON) e a Fase Semântica (exibe relatório de erros/avisos, exporta a Tabela de Símbolos em JSON).
 ```bash
-g++ main.cpp lexico.cpp parser.cpp -o sintatico.exe
+rustc main.rs -o compilador.exe
 ```
 **Para rodar:**
 ```bash
-./sintatico.exe
+./compilador.exe
 ```
 
-#### 2. Para gerar o `lexico.exe` (Exibe APENAS a Tabela de Tokens):
-Ao detectar `"lexico"` no nome do executável, o programa assume o modo apenas léxico e exibe **somente** a tabela de tokens.
+#### 2. Apenas Fase Léxica (Tabela de Tokens)
+Se o nome do executável contiver `"lexico"`, o compilador executa unicamente a análise de tokens.
 ```bash
-g++ main.cpp lexico.cpp parser.cpp -o lexico.exe
+rustc main.rs -o lexico.exe
 ```
 **Para rodar:**
 ```bash
 ./lexico.exe
 ```
 
-*Nota: O programa buscará os arquivos dentro da pasta local `codigoRust/`. Tente rodar os arquivos de teste como o `soma.rs`.*
+#### 3. Fase Sintática e Semântica
+Se o nome do executável contiver `"sintatico"`, o compilador realiza o parser da AST e a verificação semântica completa, omitindo a tabela de tokens.
+```bash
+rustc main.rs -o sintatico.exe
+```
+**Para rodar:**
+```bash
+./sintatico.exe
+```
 
-## Grupo: Anna Flavia Tsurushima, Giovanna Beatriz Ramos, Gustavo Pelissari, Igor Henrique Koga.
+*Nota: Os códigos a serem analisados devem estar na pasta `codigoRust/` (por exemplo, `soma.rs`). O compilador solicitará o nome do arquivo ao ser iniciado.*
+
+## Grupo: Anna Flavia Tsurushima, Giovanna Beatriz Ramos, Gustavo Pelissari, Igor Henrique Koga, Letícia Aparecida.
