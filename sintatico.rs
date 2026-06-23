@@ -290,8 +290,28 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // Analisa fatores de expressão (números inteiros/decimais, strings, identificadores e expressões entre parênteses)
+    // Analisa fatores de multiplicação (*) e divisão (/)
     fn parseFactor(&mut self) -> Result<Box<Expr>, String> {
+        let mut expr = self.parsePrimary()?;
+
+        while self.currentToken.r#type == TokenType::T_MULT
+            || self.currentToken.r#type == TokenType::T_DIV
+        {
+            let op = self.currentToken.lexeme.clone();
+            self.advance();
+            let right = self.parsePrimary()?;
+            expr = Box::new(Expr::Binary {
+                left: expr,
+                op,
+                right,
+            });
+        }
+
+        Ok(expr)
+    }
+
+    // Analisa elementos básicos (números, strings, identificadores e expressões entre parênteses)
+    fn parsePrimary(&mut self) -> Result<Box<Expr>, String> {
         if self.currentToken.r#type == TokenType::T_NUM {
             let expr = Box::new(Expr::Number(self.currentToken.lexeme.clone()));
             self.advance();
