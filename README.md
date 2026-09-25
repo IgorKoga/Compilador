@@ -1,6 +1,6 @@
 # Analisador Léxico, Sintático e Semântico - Compiladores
 
-Este projeto é um compilador acadêmico (contendo as fases de Análise Léxica, Sintática e Semântica) desenvolvido em **Rust** para a disciplina de Compiladores. A ferramenta é capaz de processar arquivos de código da linguagem **Rust** (simplificada), gerar uma Árvore Sintática Abstrata (AST) em formato JSON, realizar verificações semânticas estritas e exportar a Tabela de Símbolos gerada também em JSON.
+Este projeto é um compilador acadêmico (contendo as fases de Análise Léxica, Sintática, Semântica e Geração de Código via SDT) desenvolvido em **Rust** para a disciplina de Compiladores. A ferramenta é capaz de processar arquivos de código da linguagem **Rust** (simplificada), gerar uma Árvore Sintática Abstrata (AST) em formato JSON, realizar verificações semânticas estritas, exportar a Tabela de Símbolos gerada também em JSON e traduzir a árvore (RPN, TAC e PrettyPrinter).
 
 ---
 
@@ -27,6 +27,11 @@ O analisador semântico é a terceira fase. Ele valida a lógica do programa que
 
 ---
 
+### ⚙️ O que é a Síntese e Geração de Código (SDT)?
+A quarta fase (Síntese e Geração) pega a árvore validada pela semântica e realiza a **Tradução Dirigida por Sintaxe (SDT)**. Através do padrão de projeto **Visitor**, a AST intocada na memória é percorrida para emitir ações e formatar diferentes tipos de saídas de código intermediário ou canônico a partir da mesma base.
+
+---
+
 ### 🚀 Mudanças e Evoluções Realizadas (Nova Versão em Rust)
 
 #### 1. Migração e Modularização para Rust
@@ -35,6 +40,7 @@ O compilador foi completamente implementado/reescrito em **Rust**, tornando o pr
 - [lexico.rs]: Lógica de scanner/tokenização em Rust para o subconjunto da linguagem.
 - [sintatico.rs]: Parser descendente recursivo com tratamento de erros robusto via *Panic Mode* (sincronização por `;` ou palavras-chave).
 - [semantico.rs]: Analisador semântico que percorre a AST gerada, gerencia a pilha de escopos e valida as regras de semântica.
+- [sdt.rs]: Módulo com a arquitetura Visitor que realiza a tradução SDT gerando Notação Polonesa Reversa (RPN), Código de Três Endereços (TAC) e formatação (PrettyPrinting).
 - [ast.rs]: Definição das estruturas e enums que representam a AST e as instruções do programa, com métodos para impressão hierárquica e conversão para JSON.
 
 #### 2. Implementação da Fase Semântica (Novidade)
@@ -54,6 +60,15 @@ O compilador agora realiza verificações lógicas profundas:
 #### 3. Exportação de Resultados Avançada
 Além do JSON da árvore sintática (AST), o compilador agora gera e exporta a **Tabela de Símbolos em JSON** (`<nome_do_arquivo>_symbols.json`) dentro do diretório `json/`, contendo o mapeamento de variáveis, escopos, tipos, mutabilidade e uso.
 
+#### 4. Fase de Síntese e Geração de Código SDT (Novidade)
+Adicionada a etapa final de tradução em `sdt.rs`. A mesma AST agora produz 3 saídas independentes em memória:
+- **Notação Polonesa Reversa (RPN):** Um tradutor percorre as expressões em pós-ordem para emitir código baseado em pilhas, eliminando a necessidade de parênteses.
+- **Gerador de Código Intermediário (TAC):** Lineariza o controle de fluxo (`if`/`else`, `while`) com rótulos `L_x` e aloca variáveis temporárias `t_x`. Para enriquecer a geração TAC, foram implementadas as seguintes **3 melhorias avançadas**:
+  - **Dobra de Constantes (Constant Folding):** Cálculos aritméticos com números literais puros são avaliados em tempo de compilação diretamente no SDT.
+  - **Reuso Inteligente de Variáveis:** As variáveis temporárias formam um *pool* inteligente, sendo recolocadas e reutilizadas assim que seus valores são consumidos pela instrução "pai".
+  - **Curto-Circuito (Short-Circuit):** Operadores lógicos (`&&` e `||`) no TAC desviam o fluxo ignorando a avaliação da expressão da direita caso a da esquerda já a defina (ex: Falso no E lógico).
+- **PrettyPrinter:** Um reconstrutor canônico com espaçamentos explícitos em blocos (`{ ... }`) garantindo visualização da precedência gerada pelo parser.
+
 ---
 
 ### 💻 Como Compilar e Rodar
@@ -61,7 +76,7 @@ Além do JSON da árvore sintática (AST), o compilador agora gera e exporta a *
 O comportamento do programa é definido com base no nome do arquivo executável no momento da execução:
 
 #### 1. Compilação Geral (Modo Híbrido)
-Executa a Fase Léxica (exibe tabela de tokens), Fase Sintática (exibe árvore, exporta AST em JSON) e a Fase Semântica (exibe relatório de erros/avisos, exporta a Tabela de Símbolos em JSON).
+Executa todo o pipeline do compilador: Fase Léxica (exibe tokens), Fase Sintática (exibe árvore/exporta JSON), Fase Semântica (exibe relatório/tabela) e por fim a Fase SDT que imprimirá a execução da tradução múltipla no console.
 ```bash
 rustc main.rs -o compilador.exe
 ```

@@ -7,9 +7,11 @@ mod ast;
 mod lexico;
 mod sintatico;
 mod semantico;
+mod sdt;
 
 use lexico::{token_type_to_string, Scanner, TokenType};
 use sintatico::Parser;
+use sdt::{ASTVisitor, PostfixTranslator, TACTranslator, PrettyPrinter};
 
 fn main() {
     // Verifica se o executável é o "lexico" ou "sintatico"
@@ -163,6 +165,29 @@ fn main() {
                     );
                 }
             }
+
+            if run_both {
+                println!("\n============================================================");
+                println!("                  3. FASE SDT (TRADUCOES)                   ");
+                println!("============================================================");
+            }
+            
+            let mut postfix = PostfixTranslator::new();
+            postfix.visit_program(&ast);
+            println!("\n--- Tradutor 1: Notacao Polonesa Reversa (RPN) ---");
+            println!("{}", postfix.output);
+            
+            let mut tac = TACTranslator::new();
+            tac.visit_program(&ast);
+            println!("\n--- Tradutor 2: Codigo de Tres Enderecos (TAC) ---");
+            for instr in &tac.instructions {
+                println!("{}", instr);
+            }
+            
+            let mut pretty = PrettyPrinter::new();
+            pretty.visit_program(&ast);
+            println!("\n--- Tradutor 3: PrettyPrinter (Reimpressor Canonico) ---");
+            println!("{}", pretty.output);
         }
 
         if run_both {
