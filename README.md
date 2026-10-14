@@ -60,14 +60,28 @@ O compilador agora realiza verificações lógicas profundas:
 #### 3. Exportação de Resultados Avançada
 Além do JSON da árvore sintática (AST), o compilador agora gera e exporta a **Tabela de Símbolos em JSON** (`<nome_do_arquivo>_symbols.json`) dentro do diretório `json/`, contendo o mapeamento de variáveis, escopos, tipos, mutabilidade e uso.
 
-#### 4. Fase de Síntese e Geração de Código SDT (Novidade)
-Adicionada a etapa final de tradução em `sdt.rs`. A mesma AST agora produz 3 saídas independentes em memória:
-- **Notação Polonesa Reversa (RPN):** Um tradutor percorre as expressões em pós-ordem para emitir código baseado em pilhas, eliminando a necessidade de parênteses.
-- **Gerador de Código Intermediário (TAC):** Lineariza o controle de fluxo (`if`/`else`, `while`) com rótulos `L_x` e aloca variáveis temporárias `t_x`. Para enriquecer a geração TAC, foram implementadas as seguintes **3 melhorias avançadas**:
-  - **Dobra de Constantes (Constant Folding):** Cálculos aritméticos com números literais puros são avaliados em tempo de compilação diretamente no SDT.
-  - **Reuso Inteligente de Variáveis:** As variáveis temporárias formam um *pool* inteligente, sendo recolocadas e reutilizadas assim que seus valores são consumidos pela instrução "pai".
-  - **Curto-Circuito (Short-Circuit):** Operadores lógicos (`&&` e `||`) no TAC desviam o fluxo ignorando a avaliação da expressão da direita caso a da esquerda já a defina (ex: Falso no E lógico).
-- **PrettyPrinter:** Um reconstrutor canônico com espaçamentos explícitos em blocos (`{ ... }`) garantindo visualização da precedência gerada pelo parser.
+#### 4. Fase de Síntese e Geração de Código SDT
+Etapa de tradução em `sdt.rs`. A mesma AST produz 3 saídas independentes em memória:
+- **Notação Polonesa Reversa (RPN):** Tradutor que percorre expressões em pós-ordem para emitir código baseado em pilhas.
+- **Gerador de Código Intermediário (TAC):** Emite o Código de Três Endereços (Three-Address Code) canônico e não-otimizado com linearização de controle de fluxo (`if`/`else`, `while`), rótulos (`L_x`) e variáveis temporárias (`t_x`).
+- **PrettyPrinter:** Reconstrutor canônico com espaçamentos explícitos em blocos (`{ ... }`) para auditoria da árvore.
+
+#### 5. Fase de Otimização de Código Intermediário (Novidade - Aulas 09 P1 e P2)
+Implementado no módulo dedicado [otimizador.rs], aplicando rigorosamente a metodologia do Prof. Luciano Rovanni:
+- **Líderes e Blocos Básicos:** Identificação formal de blocos básicos (B1, B2, ...) usando a Regra dos Líderes (início do programa, alvos de saltos e instruções pós-salto).
+- **As 9 Passagens por Rodada:**
+  1. **Propagação de Constantes e Cópias:** Tabela de conhecimento local por bloco com invalidação correta em redefinições, saltos e entradas de rótulos.
+  2. **Dobramento de Constantes (Constant Folding):** Avaliação em tempo de compilação de operações aritméticas, relacionais (0 ou 1) e lógicas. Respeita a regra de ouro e **NUNCA dobra divisão por zero** para preservar o comportamento em runtime.
+  3. **Identidades Algébricas e Redução de Força:** Aplicação de $x + 0 \to x$, $x \times 1 \to x$, $x \times 0 \to 0$, $x - x \to 0$ e redução de força $x \times 2 \to x + x$.
+  4. **Eliminação de Subexpressões Comuns (CSE):** Reúso de cálculos idênticos com invalidação quando operandos são modificados.
+  5. **Simplificação de Desvios:** Eliminação de `ifFalse 1` (nunca salta), conversão de `ifFalse 0` em `goto` e remoção de `goto L` seguido imediatamente de `L:`.
+  6. **Eliminação de Código Inalcançável:** Remoção de instruções mortas após desvios incondicionais.
+  7. **Peephole (Janela Deslizante):** Fusão de temporários `tK` usados uma única vez na instrução seguinte direto na variável de destino (ex: `t5 = c - 10; c = t5` $\to$ `c = c - 10`).
+  8. **Eliminação de Código Morto (DCE):** Limpeza de temporários e variáveis nunca lidas (ex: `w = 8`) ou sobrescritas antes de leitura (ex: `contador = 0` antes de `contador = 60`). **NUNCA remove `print`/efeitos colaterais observáveis**.
+  9. **Limpeza de Rótulos Não Utilizados:** Remoção de rótulos que deixaram de ser alvos de saltos.
+- **Motor de Ponto Fixo:** Execução cíclica das 9 passagens até que uma rodada inteira não produza nenhuma alteração (limite de 20 rodadas).
+- **Tabela Comparativa Antes vs Depois:** Exibe métricas de instruções eliminadas, temporários economizados e blocos básicos.
+- **Interpretador de TAC e Comprovação Semântica:** Executa o TAC original e o TAC otimizado, comprovando que a **Regra de Ouro** (equivalência de comportamento observável) foi 100% satisfeita e medindo a redução real de instruções executadas na CPU.
 
 ---
 
@@ -75,36 +89,22 @@ Adicionada a etapa final de tradução em `sdt.rs`. A mesma AST agora produz 3 s
 
 O comportamento do programa é definido com base no nome do arquivo executável no momento da execução:
 
-#### 1. Compilação Geral (Modo Híbrido)
-Executa todo o pipeline do compilador: Fase Léxica (exibe tokens), Fase Sintática (exibe árvore/exporta JSON), Fase Semântica (exibe relatório/tabela) e por fim a Fase SDT que imprimirá a execução da tradução múltipla no console.
+#### 1. Compilação Geral (Pipeline Completo com Otimizador)
+Executa todo o pipeline do compilador: Fase Léxica, Fase Sintática (AST e JSON), Fase Semântica (Tabela de Símbolos), Fase SDT (TAC e RPN) e a **Fase de Otimização com Simulação e Relatório Comparativo**:
 ```bash
-rustc main.rs -o compilador.exe
+rustc main.rs -o compilador
 ```
 **Para rodar:**
 ```bash
-./compilador.exe
+./compilador
 ```
 
-#### 2. Apenas Fase Léxica (Tabela de Tokens)
-Se o nome do executável contiver `"lexico"`, o compilador executa unicamente a análise de tokens.
-```bash
-rustc main.rs -o lexico.exe
-```
-**Para rodar:**
-```bash
-./lexico.exe
-```
+#### 2. Testando os Exemplos dos Slides da Aula 09:
+- `exemplo-aula.rs`: Exemplo 3 dos slides (IF + WHILE com $14 \to 7$ instruções e saída `[60]`).
+- `exemplo-algebra.rs`: Teste de identidades algébricas, CSE e remoção de `w = 8`.
+- `num-compare.rs`: Desvios estáticos e eliminação de ramo inalcançável.
+- `soma.rs`: Propagação, dobramento e eliminação de variáveis mortas.
 
-#### 3. Fase Sintática e Semântica
-Se o nome do executável contiver `"sintatico"`, o compilador realiza o parser da AST e a verificação semântica completa, omitindo a tabela de tokens.
-```bash
-rustc main.rs -o sintatico.exe
-```
-**Para rodar:**
-```bash
-./sintatico.exe
-```
-
-*Nota: Os códigos a serem analisados devem estar na pasta `codigoRust/` (por exemplo, `soma.rs`). O compilador solicitará o nome do arquivo ao ser iniciado.*
+---
 
 ## Grupo: Anna Flavia Tsurushima, Giovanna Beatriz Ramos, Gustavo Pelissari, Igor Henrique Koga, Letícia Aparecida.

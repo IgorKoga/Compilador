@@ -8,10 +8,12 @@ mod lexico;
 mod sintatico;
 mod semantico;
 mod sdt;
+mod otimizador;
 
 use lexico::{token_type_to_string, Scanner, TokenType};
 use sintatico::Parser;
 use sdt::{ASTVisitor, PostfixTranslator, TACTranslator, PrettyPrinter};
+use otimizador::{TacOptimizer, TacInterpreter};
 
 fn main() {
     // Verifica se o executável é o "lexico" ou "sintatico"
@@ -179,15 +181,97 @@ fn main() {
             
             let mut tac = TACTranslator::new();
             tac.visit_program(&ast);
-            println!("\n--- Tradutor 2: Codigo de Tres Enderecos (TAC) ---");
-            for instr in &tac.instructions {
-                println!("{}", instr);
+            println!("\n--- Tradutor 2: Codigo de Tres Enderecos (TAC Original / Nao-Otimizado) ---");
+            for (idx, instr) in tac.instructions.iter().enumerate() {
+                println!("{:2}: {}", idx + 1, instr);
             }
             
             let mut pretty = PrettyPrinter::new();
             pretty.visit_program(&ast);
             println!("\n--- Tradutor 3: PrettyPrinter (Reimpressor Canonico) ---");
             println!("{}", pretty.output);
+
+            // ============================================================
+            // 4. FASE DE OTIMIZACAO DE CODIGO INTERMEDIARIO (AULAS 09 P1 e P2)
+            // ============================================================
+            if run_both {
+                println!("\n============================================================");
+                println!("       4. FASE DE OTIMIZACAO DE CODIGO INTERMEDIARIO        ");
+                println!("============================================================");
+            }
+
+            println!("\n[1] Lideres e Blocos Basicos (TAC Original):");
+            let blocks_before = TacOptimizer::identify_basic_blocks(&otimizador::TacOptimizer::new(&tac.instructions).instructions);
+            for b in &blocks_before {
+                println!("  Bloco {}: instrucoes {} a {}", b.name, b.start + 1, b.end + 1);
+                for (idx, instr) in b.instructions.iter().enumerate() {
+                    println!("    {:2}: {}", b.start + 1 + idx, instr.to_tac_string());
+                }
+            }
+
+            println!("\n[2] Execucao das 9 Passagens ate o Ponto Fixo:");
+            let mut optimizer = TacOptimizer::new(&tac.instructions);
+            let stats = optimizer.optimize();
+
+            if stats.round_logs.is_empty() {
+                println!("  Nenhuma transformacao foi necessaria (o codigo ja estava estavel).");
+            } else {
+                for rlog in &stats.round_logs {
+                    println!("  --- Rodada {} ---", rlog.round);
+                    for act in &rlog.actions {
+                        println!("    * {}", act);
+                    }
+                }
+                println!("\n  >> Ponto Fixo alcancado na Rodada {} (uma rodada inteira sem mudancas) <<", stats.rounds_executed);
+            }
+
+            println!("\n[3] Codigo Intermediario (TAC) Otimizado:");
+            println!("{}", "-".repeat(60));
+            for (idx, instr) in stats.optimized_tac.iter().enumerate() {
+                println!("{:2}: {}", idx + 1, instr);
+            }
+            println!("{}", "-".repeat(60));
+
+            println!("\n[4] Blocos Basicos Apos Otimizacao:");
+            for b in &stats.blocks_after {
+                println!("  Bloco {}: instrucoes {} a {}", b.name, b.start + 1, b.end + 1);
+                for (idx, instr) in b.instructions.iter().enumerate() {
+                    println!("    {:2}: {}", b.start + 1 + idx, instr.to_tac_string());
+                }
+            }
+
+            println!("\n[5] Tabela Comparativa (Antes vs Depois):");
+            println!("{:<32} {:<12} {:<12} {}", "Metrica", "Antes", "Depois", "Ganho / Reducao");
+            println!("{}", "-".repeat(75));
+            let red_pct = if stats.initial_instructions > 0 {
+                ((stats.initial_instructions as f64 - stats.final_instructions as f64) / stats.initial_instructions as f64) * 100.0
+            } else {
+                0.0
+            };
+            println!("{:<32} {:<12} {:<12} {:.1}% instrucoes eliminadas", "Instrucoes no codigo (TAC)", stats.initial_instructions, stats.final_instructions, red_pct);
+            let saved_temps = stats.initial_temps.saturating_sub(stats.final_temps);
+            println!("{:<32} {:<12} {:<12} {} temporarios a menos", "Variaveis temporarias (t_k)", stats.initial_temps, stats.final_temps, saved_temps);
+            println!("{:<32} {:<12} {:<12} {} -> {} blocos", "Quantidade de Blocos Basicos", stats.blocks_before.len(), stats.blocks_after.len(), stats.blocks_before.len(), stats.blocks_after.len());
+            println!("{}", "-".repeat(75));
+
+            println!("\n[6] Comprovacao de Equivalencia Semantica (Interpretador de TAC):");
+            let exec_before = TacInterpreter::execute(&stats.initial_tac);
+            let exec_after = TacInterpreter::execute(&stats.optimized_tac);
+
+            println!("  Saida TAC antes:  {:?}", exec_before.output);
+            println!("  Saida TAC depois: {:?}", exec_after.output);
+            println!("  Passos de execucao antes:  {}", exec_before.steps);
+            println!("  Passos de execucao depois: {}", exec_after.steps);
+            if exec_before.steps > 0 {
+                let steps_pct = ((exec_before.steps as f64 - exec_after.steps as f64) / exec_before.steps as f64) * 100.0;
+                println!("  Economia de execucao em runtime: {:.1}% menos passos na CPU", steps_pct);
+            }
+
+            if exec_before.output == exec_after.output {
+                println!("  => [SUCESSO] Regra de Ouro comprovada: comportamento observavel PRESERVADO!");
+            } else {
+                println!("  => [ATENCAO] Comportamento observavel divergente!");
+            }
         }
 
         if run_both {

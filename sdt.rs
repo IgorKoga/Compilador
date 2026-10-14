@@ -146,10 +146,6 @@ pub struct TACTranslator {
     pub last_place: String,
     pub instructions: Vec<String>,
     pub action_log: Vec<String>,
-    
-    // Melhoria 2: Pool de temporários
-    temp_pool: Vec<String>,
-    active_temps: Vec<String>,
 }
 
 impl TACTranslator {
@@ -160,30 +156,16 @@ impl TACTranslator {
             last_place: String::new(),
             instructions: Vec::new(),
             action_log: Vec::new(),
-            temp_pool: Vec::new(),
-            active_temps: Vec::new(),
         }
     }
 
     fn new_temp(&mut self) -> String {
-        if let Some(t) = self.temp_pool.pop() {
-            self.active_temps.push(t.clone());
-            t
-        } else {
-            self.temp_count += 1;
-            let t = format!("t{}", self.temp_count);
-            self.active_temps.push(t.clone());
-            t
-        }
+        self.temp_count += 1;
+        format!("t{}", self.temp_count)
     }
 
-    fn free_temp(&mut self, temp: &str) {
-        if temp.starts_with('t') && temp[1..].parse::<usize>().is_ok() {
-            if let Some(pos) = self.active_temps.iter().position(|x| x == temp) {
-                self.active_temps.remove(pos);
-                self.temp_pool.push(temp.to_string());
-            }
-        }
+    fn free_temp(&mut self, _temp: &str) {
+        // Temporários preservados para análise de liveness e otimização
     }
 
     fn new_label(&mut self) -> String {
@@ -215,11 +197,21 @@ impl ASTVisitor for TACTranslator {
     }
 
     fn visit_println(&mut self, args: &[Expr]) {
-        for arg in args {
-            self.visit_expr(arg);
-            let val = self.last_place.clone();
-            self.emit(&format!("print {}", val));
-            self.free_temp(&val);
+        // Em Rust, o primeiro argumento do println!("...", a, b) é a máscara de formatação
+        if args.len() > 1 && matches!(args[0], Expr::String(_)) {
+            for arg in &args[1..] {
+                self.visit_expr(arg);
+                let val = self.last_place.clone();
+                self.emit(&format!("print {}", val));
+                self.free_temp(&val);
+            }
+        } else {
+            for arg in args {
+                self.visit_expr(arg);
+                let val = self.last_place.clone();
+                self.emit(&format!("print {}", val));
+                self.free_temp(&val);
+            }
         }
     }
 
@@ -293,24 +285,7 @@ impl ASTVisitor for TACTranslator {
     }
 
     fn visit_binary(&mut self, left: &Expr, op: &str, right: &Expr) {
-        // Melhoria 1: Dobra de Constantes (Constant Folding)
-        if let (Expr::Number(l_val), Expr::Number(r_val)) = (left, right) {
-            if let (Ok(l_num), Ok(r_num)) = (l_val.parse::<i32>(), r_val.parse::<i32>()) {
-                let folded = match op {
-                    "+" => Some(l_num + r_num),
-                    "-" => Some(l_num - r_num),
-                    "*" => Some(l_num * r_num),
-                    "/" if r_num != 0 => Some(l_num / r_num),
-                    _ => None,
-                };
-                if let Some(res) = folded {
-                    self.last_place = res.to_string();
-                    return;
-                }
-            }
-        }
-
-        // Melhoria 3: Short-Circuit para Operadores Lógicos (&&, ||)
+        // Operadores Lógicos com Short-Circuit (&&, ||)
         if op == "&&" {
             let l_false = self.new_label();
             let l_end = self.new_label();
